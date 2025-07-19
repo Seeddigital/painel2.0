@@ -1,17 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.middleware.cors import CORSMiddleware  # ✅ Importar o middleware
-
 from auth import create_access_token, verify_token
 from database import get_connection
 from queries.consulta_clientes import get_dados_clientes
 
 app = FastAPI()
 
-# ✅ Middleware de CORS — ANTES das rotas
+# Adicione este bloco antes de qualquer rota
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ Use ["*"] apenas para testes. Depois especifique seu domínio.
+    allow_origins=["*"],  # Para produção, troque por ['https://seudominio.com']
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,4 +32,3 @@ def clientes(token: dict = Depends(verify_token)):
 @app.get("/")
 def root():
     return {"msg": "API rodando com sucesso 🚀"}
-
