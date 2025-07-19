@@ -7,12 +7,16 @@ from queries.consulta_clientes import get_dados_clientes
 
 app = FastAPI()
 
-origins = ["*"]
-
+# Domínios permitidos para CORS (incluir todos os usados no Lovable)
+origins = [
+    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
+    "https://preview--painel-seed.lovable.app",
+    "https://painel-seed.lovable.app",
+]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,  # não pode ser "*"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
