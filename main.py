@@ -8,8 +8,10 @@ from queries.consulta_clientes import get_dados_clientes
 app = FastAPI()
 
 origins = [
-    "https://preview--painel-seed.lovable.app",  # URL do frontend
+    "https://painel-seed.lovable.app",
+    "https://preview--painel-seed.lovable.app",
 ]
+
 
 app.add_middleware(
     CORSMiddleware,
