@@ -10,7 +10,7 @@ app = FastAPI()
 # Adicione este bloco antes de qualquer rota
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Para produção, troque por ['https://seudominio.com']
+    allow_origins=["https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com"],  # Para produção, troque por ['https://seudominio.com']
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
