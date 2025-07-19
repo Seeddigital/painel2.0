@@ -7,10 +7,7 @@ from queries.consulta_clientes import get_dados_clientes
 
 app = FastAPI()
 
-origins = [
-    "https://painel-seed.lovable.app",
-    "https://preview--painel-seed.lovable.app",
-]
+origins = ["*"]
 
 
 app.add_middleware(
