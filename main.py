@@ -7,10 +7,13 @@ from queries.consulta_clientes import get_dados_clientes
 
 app = FastAPI()
 
-# Adicione este bloco antes de qualquer rota
+origins = [
+    "https://preview--painel-seed.lovable.app",  # URL do frontend
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Para produção, troque por ['https://seudominio.com']
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
