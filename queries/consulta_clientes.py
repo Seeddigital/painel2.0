@@ -1,4 +1,6 @@
-WITH LojasPotencial AS (
+def get_dados_clientes(conn):
+    query = """ 
+    WITH LojasPotencial AS (
     SELECT * FROM (
         VALUES 
             ('Shopping SP Market', 1),
@@ -138,3 +140,9 @@ LEFT JOIN UltimaManutencao UM
     ON UM.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
 LEFT JOIN QtdLojas QL
     ON QL.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
+    """
+    cursor = conn.cursor()
+    cursor.execute(query)
+    columns = [column[0] for column in cursor.description]
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return results
