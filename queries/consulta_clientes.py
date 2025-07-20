@@ -1,6 +1,4 @@
-def get_dados_clientes(conn):
-    query = """ 
-    WITH LojasPotencial AS (
+WITH LojasPotencial AS (
     SELECT * FROM (
         VALUES 
             ('Shopping SP Market', 1),
@@ -93,13 +91,19 @@ SELECT DISTINCT
 
     -- Quantidade de sensores ATIVOS
     (
-        SELECT COUNT(ss.DS_SITE_SENSORES_ID)
-        FROM [Seed_CFG_Analytics].[dbo].[DS_SITE] S
-        INNER JOIN [Seed_CFG_Analytics].[dbo].[DS_SITE_SENSORES] SS
-            ON S.DS_SITE_BS_ID = SS.DS_SITE_SENSORES_SITE_ID
-        WHERE S.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
-          AND ss.DS_STATUS = 1
-    ) AS QTD_SENSORES_ATIVOS,
+        SELECT COUNT(DISTINCT ss.DS_SITE_SENSORES_ID)
+    FROM [Seed_CFG_Analytics].[dbo].[DS_SITE] S
+    INNER JOIN [Seed_CFG_Analytics].[dbo].[DS_SITE_SENSORES] SS
+        ON S.DS_SITE_BS_ID = SS.DS_SITE_SENSORES_SITE_ID
+    INNER JOIN [Seed_CFG_Analytics].[dbo].[DS_DATA_SOURCE] D
+        ON S.DS_SITE_BS_ID = D.DS_DATA_SOURCE_SITE_ID
+    WHERE S.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
+      AND S.DS_STATUS = 1
+      AND SS.DS_STATUS = 1
+      AND D.DS_STATUS = 1
+      AND D.DS_DATA_DESATIVACAO IS NULL
+) AS QTD_SENSORES_ATIVOS,
+  
 
     -- Quantidade de sensores INATIVOS
     (
@@ -134,10 +138,3 @@ LEFT JOIN UltimaManutencao UM
     ON UM.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
 LEFT JOIN QtdLojas QL
     ON QL.DS_SITE_COMPANY_ID_BS = A.DS_COMPANY_BS_ID
-
-    """
-    cursor = conn.cursor()
-    cursor.execute(query)
-    columns = [column[0] for column in cursor.description]
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    return results
