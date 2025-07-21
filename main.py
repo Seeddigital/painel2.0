@@ -4,6 +4,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from auth import create_access_token, verify_token
 from database import get_connection
 from queries.consulta_clientes import get_dados_clientes
+from queries.consulta_lojas import get_dados_lojas
+
 
 app = FastAPI()
 
@@ -34,6 +36,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 def clientes(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_clientes(conn)
+
+@app.get("/lojas")
+def lojas(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_dados_lojas(conn)
+
 
 @app.get("/")
 def root():
