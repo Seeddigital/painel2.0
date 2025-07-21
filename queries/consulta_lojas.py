@@ -1,5 +1,5 @@
 
-def get_dados_clientes(conn):
+def get_dados_lojas(conn):
     query = """ 
 SELECT
    S.DS_SITE_BS_ID  AS id,
