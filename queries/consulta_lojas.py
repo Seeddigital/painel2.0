@@ -1,3 +1,6 @@
+
+def get_dados_clientes(conn):
+    query = """ 
 SELECT
    S.DS_SITE_BS_ID  AS id,
     S.DS_SITE_DESCRIPTION AS name,
