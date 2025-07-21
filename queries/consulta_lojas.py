@@ -94,3 +94,11 @@ INNER JOIN
 WHERE 
     S.DS_SITE_BS_ID IS NOT NULL
     and s.DS_STATUS = 1
+
+
+ """
+    cursor = conn.cursor()
+    cursor.execute(query)
+    columns = [column[0] for column in cursor.description]
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    return results
