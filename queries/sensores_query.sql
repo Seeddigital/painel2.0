@@ -1,5 +1,5 @@
 
-def get_dados_sensores(conn):
+def get_dados_clientes(conn):
     query = """ 
 
 SELECT 
