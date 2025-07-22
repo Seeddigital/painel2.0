@@ -1,3 +1,4 @@
+
 def get_dados_sensores(conn):
     query = """ 
 
