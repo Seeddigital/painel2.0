@@ -1,4 +1,4 @@
-def get_dados_lojas(conn):
+def get_dados_sensores(conn):
     query = """ 
 
 SELECT 
