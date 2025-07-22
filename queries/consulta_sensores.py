@@ -35,7 +35,7 @@ LEFT JOIN
 
 WHERE 
     A.DS_STATUS = 1 AND 
-    B.DS_STATUS = 1 AND 
+    B.DS_STATUS = 1 
   
 
 GROUP BY 
