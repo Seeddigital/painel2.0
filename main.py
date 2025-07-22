@@ -47,9 +47,8 @@ def lojas(token: dict = Depends(verify_token)):
 
 @app.get("/sensores")
 def sensores(token: dict = Depends(verify_token)):
-    query_path = os.path.join("queries", "sensores_query.sql")
-    result = run_query(query_path)
-    return result
+    conn = get_connection()
+    return get_dados_sensores(conn)
 
 
 
