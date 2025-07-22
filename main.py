@@ -5,6 +5,7 @@ from auth import create_access_token, verify_token
 from database import get_connection
 from queries.consulta_clientes import get_dados_clientes
 from queries.consulta_lojas import get_dados_lojas
+from queries.consulta_sensores import get_dados_sensores
 
 
 app = FastAPI()
@@ -32,6 +33,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
 
+
+
 @app.get("/clientes")
 def clientes(token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -41,6 +44,13 @@ def clientes(token: dict = Depends(verify_token)):
 def lojas(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_lojas(conn)
+
+@app.get("/sensores")
+def sensores(token: dict = Depends(verify_token)):
+    query_path = os.path.join("queries", "sensores_query.sql")
+    result = run_query(query_path)
+    return result
+
 
 
 @app.get("/")
