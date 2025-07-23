@@ -60,7 +60,7 @@ def estoque(token: dict = Depends(verify_token)):
 @app.get("/estoque_detalhes")
 def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
-    return get_dados_estoque(conn)
+    return get_dados_estoque_detalhes(conn)
 
 
 
