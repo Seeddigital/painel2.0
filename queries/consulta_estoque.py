@@ -1,6 +1,6 @@
 
 
-def get_dados_lojas(conn):
+def get_dados_estoque(conn):
     query = """ 
 SELECT 
       [DS_ESTOQUE_TIPO]
