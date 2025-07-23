@@ -8,6 +8,7 @@ from queries.consulta_lojas import get_dados_lojas
 from queries.consulta_sensores import get_dados_sensores
 from queries.consulta_estoque import get_dados_estoque
 from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
+from queries.consulta_chamados import get_dados_chamados
 
 
 app = FastAPI()
@@ -61,6 +62,11 @@ def estoque(token: dict = Depends(verify_token)):
 def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque_detalhes(conn)
+
+@app.get("/estoque_chamados")
+def estoque(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_dados_chamados(conn)
 
 
 
