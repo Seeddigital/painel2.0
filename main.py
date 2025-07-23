@@ -6,6 +6,7 @@ from database import get_connection
 from queries.consulta_clientes import get_dados_clientes
 from queries.consulta_lojas import get_dados_lojas
 from queries.consulta_sensores import get_dados_sensores
+from queries.consulta_estoque import get_dados_estoque
 
 
 app = FastAPI()
@@ -49,6 +50,11 @@ def lojas(token: dict = Depends(verify_token)):
 def sensores(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_sensores(conn)
+
+@app.get("/estoque")
+def sensores(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_dados_estoque(conn)
 
 
 
