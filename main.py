@@ -52,7 +52,7 @@ def sensores(token: dict = Depends(verify_token)):
     return get_dados_sensores(conn)
 
 @app.get("/estoque")
-def sensores(token: dict = Depends(verify_token)):
+def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque(conn)
 
