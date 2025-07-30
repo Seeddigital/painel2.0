@@ -1,3 +1,10 @@
+def get_dados_sensores(conn):
+    print("[DEBUG] Iniciando consulta de sensores")
+    try:
+        query = """
+
+
+
 SELECT  [DS_USUARIOS_ID]
       ,[DS_USUARIOS_NOME]
       ,[DS_USUARIOS_EMAIL]
