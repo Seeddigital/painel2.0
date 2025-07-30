@@ -16,10 +16,23 @@ app = FastAPI()
 
 # Domínios permitidos para CORS (incluir todos os usados no Lovable)
 origins = [
+    # Projeto atual
+    "https://8d57f6cd-30c9-48cb-9580-f0abd1899beb.lovableproject.com",
+    
+    # Outro projeto existente
     "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
+    
+    # Domínios de produção
     "https://preview--painel-seed.lovable.app",
     "https://painel-seed.lovable.app",
+    
+    # Wildcards (nem sempre funcionam em todas as implementações)
     "https://*.lovableproject.com",
+    "https://*.lovable.app",
+    
+    # Para desenvolvimento local (opcional)
+    "http://localhost:3000",
+    "http://localhost:5173",
 ]
 
 app.add_middleware(
