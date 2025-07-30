@@ -19,6 +19,7 @@ origins = [
     "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
     "https://preview--painel-seed.lovable.app",
     "https://painel-seed.lovable.app",
+    "https://*.lovableproject.com",
 ]
 
 app.add_middleware(
