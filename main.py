@@ -21,6 +21,7 @@ origins = [
     
     # Outro projeto existente
     "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
+    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.sandbox.lovable.dev",
     
     # Domínios de produção
     "https://preview--painel-seed.lovable.app",
