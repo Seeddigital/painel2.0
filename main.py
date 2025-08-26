@@ -14,35 +14,25 @@ from queries.consulta_users import get_dados_users
 
 app = FastAPI()
 
-# Domínios permitidos para CORS (incluir todos os usados no Lovable)
+# Domínios permitidos para CORS
 origins = [
-    # Projeto atual
-    "https://8d57f6cd-30c9-48cb-9580-f0abd1899beb.lovableproject.com",
-    
-    # Outro projeto existente
-    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
     "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.sandbox.lovable.dev",
-    
-    # Domínios de produção
-    "https://preview--painel-seed.lovable.app",
+    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
     "https://painel-seed.lovable.app",
-    
-    # Wildcards (nem sempre funcionam em todas as implementações)
-    "https://*.lovableproject.com",
-    "https://*.lovable.app",
-    
-    # Para desenvolvimento local (opcional)
     "http://localhost:3000",
     "http://localhost:5173",
 ]
 
+# IMPORTANTE: Aplicar o middleware CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # não pode ser "*"
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
 
 @app.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
