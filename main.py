@@ -129,9 +129,9 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
 
     return {"message": "Chamado registrado com sucesso ✅"}
 
-# ----------------------------------------
-# GET /chamado/{usuario_id} - Listar chamados de um usuário
-# ----------------------------------------
+# ----------------------
+# GET /chamado/{usuario_id}
+# ----------------------
 
 @app.get("/chamado/{usuario_id}")
 def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
@@ -141,7 +141,7 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     query = """
         SELECT id, cliente, responsavel, titulo, problema, impacto,
                urgencia, detalhe_urgencia, prazo, relevancia,
-               anexos, data_criacao, trello_card_url
+               anexos, data_criacao, trello_card_url, status
         FROM DS_CHAMADOS_DEV
         WHERE usuario_id = ?
         ORDER BY data_criacao DESC
@@ -154,7 +154,6 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     chamados = []
     for row in rows:
         chamado = dict(zip(columns, row))
-        # Parse anexos de string JSON para lista
         if chamado.get("anexos"):
             try:
                 chamado["anexos"] = json.loads(chamado["anexos"])
