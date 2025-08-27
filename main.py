@@ -128,3 +128,41 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     conn.close()
 
     return {"message": "Chamado registrado com sucesso ✅"}
+
+# ----------------------------------------
+# GET /chamado/{usuario_id} - Listar chamados de um usuário
+# ----------------------------------------
+
+@app.get("/chamado/{usuario_id}")
+def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT id, cliente, responsavel, titulo, problema, impacto,
+               urgencia, detalhe_urgencia, prazo, relevancia,
+               anexos, data_criacao, trello_card_url
+        FROM DS_CHAMADOS_DEV
+        WHERE usuario_id = ?
+        ORDER BY data_criacao DESC
+    """
+
+    cursor.execute(query, (usuario_id,))
+    rows = cursor.fetchall()
+    columns = [column[0] for column in cursor.description]
+
+    chamados = []
+    for row in rows:
+        chamado = dict(zip(columns, row))
+        # Parse anexos de string JSON para lista
+        if chamado.get("anexos"):
+            try:
+                chamado["anexos"] = json.loads(chamado["anexos"])
+            except:
+                chamado["anexos"] = []
+        chamados.append(chamado)
+
+    cursor.close()
+    conn.close()
+
+    return chamados
