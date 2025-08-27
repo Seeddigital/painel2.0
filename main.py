@@ -11,28 +11,16 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
-
 app = FastAPI()
 
-# Domínios permitidos para CORS
-origins = [
-    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.sandbox.lovable.dev",
-    "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
-    "https://painel-seed.lovable.app",
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
-
-# IMPORTANTE: Aplicar o middleware CORS
+# CORS - aceita qualquer subdomínio do Lovable
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https://.*(\.lovable\.dev|\.lovableproject\.com|\.lovable\.app)$",
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
 
 @app.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
@@ -41,8 +29,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         return {"access_token": access_token, "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
-
-
 
 @app.get("/clientes")
 def clientes(token: dict = Depends(verify_token)):
@@ -70,16 +56,14 @@ def estoque(token: dict = Depends(verify_token)):
     return get_dados_estoque_detalhes(conn)
 
 @app.get("/chamados")
-def estoque(token: dict = Depends(verify_token)):
+def chamados(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_chamados(conn)
 
 @app.get("/users")
-def estoque(token: dict = Depends(verify_token)):
+def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
-
-
 
 @app.get("/")
 def root():
