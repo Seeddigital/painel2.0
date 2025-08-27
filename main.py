@@ -1,6 +1,11 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import date
+import json
+
 from auth import create_access_token, verify_token
 from database import get_connection
 from queries.consulta_clientes import get_dados_clientes
@@ -68,3 +73,58 @@ def users(token: dict = Depends(verify_token)):
 @app.get("/")
 def root():
     return {"msg": "API rodando com sucesso 🚀"}
+
+# ----------------------------------------
+# NOVA ROTA: POST /chamado
+# ----------------------------------------
+
+class Chamado(BaseModel):
+    cliente: str
+    responsavel: str
+    titulo: str
+    problema: str
+    impacto: str
+    urgencia: bool
+    detalhe_urgencia: Optional[str] = None
+    prazo: Optional[date] = None
+    relevancia: str
+    anexos: Optional[List[str]] = []
+    trello_card_url: Optional[str] = None
+    usuario_id: int
+
+@app.post("/chamado")
+def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    insert_query = """
+        INSERT INTO DS_CHAMADOS_DEV (
+            cliente, responsavel, titulo, problema, impacto,
+            urgencia, detalhe_urgencia, prazo, relevancia,
+            anexos, data_criacao, trello_card_url, usuario_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?)
+    """
+
+    cursor.execute(
+        insert_query,
+        (
+            chamado.cliente,
+            chamado.responsavel,
+            chamado.titulo,
+            chamado.problema,
+            chamado.impacto,
+            chamado.urgencia,
+            chamado.detalhe_urgencia,
+            chamado.prazo,
+            chamado.relevancia,
+            json.dumps(chamado.anexos),
+            chamado.trello_card_url,
+            chamado.usuario_id
+        )
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {"message": "Chamado registrado com sucesso ✅"}
