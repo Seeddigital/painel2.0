@@ -22,10 +22,14 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=r"https://.*(\.lovable\.dev|\.lovableproject\.com|\.lovable\.app)$",
+    allow_origins=[
+        "https://chamados.dev.seeddigital.com.br",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
