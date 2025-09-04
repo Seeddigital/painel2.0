@@ -24,6 +24,7 @@ app.add_middleware(
     allow_origins=[
         "https://chamados-dev.web.app",              # Firebase Hosting padrão
         "https://chamados.dev.seeddigital.com.br",   # Domínio customizado (se estiver usando)
+        "https://chamados-dev-seed.web.app", 
     ],
     allow_credentials=True,
     allow_methods=["*"],
