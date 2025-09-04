@@ -21,9 +21,9 @@ app = FastAPI()
 # CORS - aceita qualquer subdomínio do Lovable
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https://.*(\.lovable\.dev|\.lovableproject\.com|\.lovable\.app)$",
     allow_origins=[
-        "https://chamados.dev.seeddigital.com.br",
+        "https://chamados-dev.web.app",              # Firebase Hosting padrão
+        "https://chamados.dev.seeddigital.com.br",   # Domínio customizado (se estiver usando)
     ],
     allow_credentials=True,
     allow_methods=["*"],
