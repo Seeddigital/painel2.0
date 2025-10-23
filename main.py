@@ -22,9 +22,10 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://chamados-dev.web.app",              # Firebase Hosting padrão
-        "https://chamados.dev.seeddigital.com.br",   # Domínio customizado (se estiver usando)
-        "https://chamados-dev-seed.web.app", 
+        "https://chamados-dev.web.app",
+        "https://chamados.dev.seeddigital.com.br",
+        "https://chamados-dev-seed.web.app",
+        "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",  # ← Adicione esta linha
     ],
     allow_credentials=True,
     allow_methods=["*"],
