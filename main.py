@@ -16,22 +16,23 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
+
 app = FastAPI()
 
-# CORS - aceita qualquer subdomínio do Lovable
+# CORS - aceita todos os domínios necessários
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://chamados-dev.web.app",
         "https://chamados.dev.seeddigital.com.br",
         "https://chamados-dev-seed.web.app",
-        "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
-        "https://preview--painel-seed.lovable.app/clients",
-        "https://id-preview--f1caee16-06fd-4a62-877f-325cc7fad0eb.lovable.app",# ← Adicione esta linha
+        "https://painel.seeddigital.com.br",  # ← Domínio customizado do Lovable
     ],
+    allow_origin_regex=r"https://.*\.lovableproject\.com",  # ← Permite todos os previews do Lovable
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+
 )
 
 
