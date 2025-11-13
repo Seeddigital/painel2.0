@@ -27,7 +27,7 @@ app.add_middleware(
         "https://chamados-dev-seed.web.app",
         "https://f1caee16-06fd-4a62-877f-325cc7fad0eb.lovableproject.com",
         "https://preview--painel-seed.lovable.app/clients",
-        "https://painel.seeddigital.com.br",# ← Adicione esta linha
+        "https://id-preview--f1caee16-06fd-4a62-877f-325cc7fad0eb.lovable.app",# ← Adicione esta linha
     ],
     allow_credentials=True,
     allow_methods=["*"],
