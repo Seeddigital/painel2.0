@@ -1,33 +1,26 @@
 def get_gaps_integracao_full(conn):
-    query = """ 
+    query = """
     SELECT 
-        [ID],
-        [COMPANY],
-        [SITE_ID],
-        [SITE_NAME],
-        [CNPJ],
-        [DATA],
-        [HORA],
-        [FLUXO],
-        [TICKET],
-        [CHAVE]
-    FROM [Seed_CFG_Analytics].[dbo].[DS_INTEGRACAO_GAP_FULL]
-    ORDER BY [DATA] DESC, [HORA] ASC
+        SITE_NAME,
+        DATA,
+        MAX(CASE WHEN HORA = 10 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H10,
+        MAX(CASE WHEN HORA = 11 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H11,
+        MAX(CASE WHEN HORA = 12 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H12,
+        MAX(CASE WHEN HORA = 13 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H13,
+        MAX(CASE WHEN HORA = 14 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H14,
+        MAX(CASE WHEN HORA = 15 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H15,
+        MAX(CASE WHEN HORA = 16 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H16,
+        MAX(CASE WHEN HORA = 17 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H17,
+        MAX(CASE WHEN HORA = 18 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H18,
+        MAX(CASE WHEN HORA = 19 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H19,
+        MAX(CASE WHEN HORA = 20 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H20,
+        MAX(CASE WHEN HORA = 21 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H21,
+        MAX(CASE WHEN HORA = 22 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H22
+    FROM DS_INTEGRACAO_GAP_FULL
+    GROUP BY SITE_NAME, DATA
+    ORDER BY DATA DESC, SITE_NAME ASC;
     """
     cursor = conn.cursor()
     cursor.execute(query)
     columns = [column[0] for column in cursor.description]
-    
-    results = []
-    for row in cursor.fetchall():
-        row = dict(zip(columns, row))
-
-        if row["TICKET"] is None:
-            row["STATUS_EMOJI"] = "🔴"
-            row["STATUS_COLOR"] = "red"
-        else:
-            row["STATUS_EMOJI"] = "🟢"
-            row["STATUS_COLOR"] = "green"
-
-        results.append(row)
-    return results
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
