@@ -8,6 +8,8 @@ import json
 
 from auth import create_access_token, verify_token
 from database import get_connection
+
+# consultas já existentes
 from queries.consulta_clientes import get_dados_clientes
 from queries.consulta_lojas import get_dados_lojas
 from queries.consulta_sensores import get_dados_sensores
@@ -15,12 +17,15 @@ from queries.consulta_estoque import get_dados_estoque
 from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
-from queries.gaps_integracao import get_gaps_integracao   # ← AQUI!! IMPORTADO
 
+# novas consultas de INTEGRAÇÃO
+from queries.gaps_integracao import get_gaps_integracao            # TICKET IS NULL
+from queries.integracao_ok import get_integracao_ok               # TICKET NOT NULL
+from queries.gaps_integracao_full import get_gaps_integracao_full # FULL dataset
 
 app = FastAPI()
 
-# CORS - aceita todos os domínios necessários
+# CORS liberado para Lovable / Seed
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -35,7 +40,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# ------------------------------------------------
+# AUTH JWT
+# ------------------------------------------------
 @app.post("/token")
 def login(form_data: OAuth2PasswordRequestForm = Depends()):
     if form_data.username == "admin" and form_data.password == "admin123":
@@ -44,6 +51,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
 
+
+# ------------------------------------------------
+# ENDPOINTS EXISTENTES
+# ------------------------------------------------
 @app.get("/clientes")
 def clientes(token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -79,23 +90,41 @@ def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
 
+
 # ------------------------------------------------
-# NOVO ENDPOINT: GAPS DE INTEGRAÇÃO
+# NOVOS ENDPOINTS DE INTEGRAÇÃO
 # ------------------------------------------------
+
+# GAPs — TICKET NULL
 @app.get("/gaps")
 def gaps(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_gaps_integracao(conn)
 
+# Apenas OK — TICKET NOT NULL
+@app.get("/integracao_ok")
+def integracao_ok(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_integracao_ok(conn)
 
+# FULL — independentemente de TICKET
+@app.get("/gaps_full")
+def gaps_full(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_gaps_integracao_full(conn)
+
+
+# ------------------------------------------------
+# ROOT
+# ------------------------------------------------
 @app.get("/")
 def root():
     return {"msg": "API rodando com sucesso 🚀"}
 
-# ----------------------------------------
-# NOVA ROTA: POST /chamado
-# ----------------------------------------
 
+# ----------------------------------------
+# ROTA: POST /chamado
+# ----------------------------------------
 class Chamado(BaseModel):
     cliente: str
     responsavel: str
@@ -147,10 +176,10 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
 
     return {"message": "Chamado registrado com sucesso ✅"}
 
+
 # ----------------------
 # GET /chamado/{usuario_id}
 # ----------------------
-
 @app.get("/chamado/{usuario_id}")
 def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -170,6 +199,7 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     columns = [column[0] for column in cursor.description]
 
     chamados = []
+    
     for row in rows:
         chamado = dict(zip(columns, row))
         if chamado.get("anexos"):
