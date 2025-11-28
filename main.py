@@ -19,7 +19,7 @@ from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
 # consultas de INTEGRAÇÃO
-from queries.gaps_integracao_full import get_gaps_full     # full dataset
+from queries.gaps_full import get_gaps_full     # full dataset
 from queries.integracao_ok import get_integracao_ok                  # somente OK
 
 app = FastAPI()
