@@ -1,4 +1,4 @@
-def get_gaps_integracao_full(conn):
+def get_gaps_full(conn):
     query = """
     SELECT 
         SITE_NAME,
