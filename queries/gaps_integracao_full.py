@@ -8,7 +8,7 @@ def get_gaps_integracao_full(conn):
         ...
         MAX(CASE WHEN HORA = 22 THEN CASE WHEN TICKET IS NULL THEN 0 ELSE 1 END END) AS H22
     FROM DS_INTEGRACAO_GAP_FULL
-    WHERE DATA >= DATEADD(day, -2, GETDATE())
+    WHERE DATA >= DATEADD(month, -2, GETDATE())
     GROUP BY SITE_NAME, DATA
     ORDER BY DATA DESC, SITE_NAME ASC
     """
