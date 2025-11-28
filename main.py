@@ -102,9 +102,25 @@ def gaps_full(token: dict = Depends(verify_token)):
 
 # Apenas OK — TICKET NOT NULL
 @app.get("/integracao_ok")
-def integracao_ok(token: dict = Depends(verify_token)):
+def integracao_ok(
+    token: dict = Depends(verify_token),
+    data: Optional[str] = None,
+    site_id: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 5000
+):
     conn = get_connection()
-    return get_integracao_ok(conn)
+
+    offset = (page - 1) * page_size
+
+    return get_integracao_ok(
+        conn,
+        data=data,
+        site_id=site_id,
+        offset=offset,
+        limit=page_size
+    )
+
 
 
 # ------------------------------------------------
