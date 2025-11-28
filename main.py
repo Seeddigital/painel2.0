@@ -18,10 +18,9 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
-# novas consultas de INTEGRAÇÃO
-from queries.gaps_integracao import get_gaps_integracao            # TICKET IS NULL
-from queries.integracao_ok import get_integracao_ok               # TICKET NOT NULL
-from queries.gaps_integracao_full import get_gaps_integracao_full # FULL dataset
+# consultas de INTEGRAÇÃO
+from queries.gaps_integracao_full import get_gaps_integracao_full     # full dataset
+from queries.integracao_ok import get_integracao_ok                  # somente OK
 
 app = FastAPI()
 
@@ -95,23 +94,17 @@ def users(token: dict = Depends(verify_token)):
 # NOVOS ENDPOINTS DE INTEGRAÇÃO
 # ------------------------------------------------
 
-# GAPs — TICKET NULL
-@app.get("/gaps")
-def gaps(token: dict = Depends(verify_token)):
+# FULL — retorna todos os horários de integração ( OK + GAP )
+@app.get("/gaps_full")
+def gaps_full(token: dict = Depends(verify_token)):
     conn = get_connection()
-    return get_gaps_integracao(conn)
+    return get_gaps_integracao_full(conn)
 
 # Apenas OK — TICKET NOT NULL
 @app.get("/integracao_ok")
 def integracao_ok(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_integracao_ok(conn)
-
-# FULL — independentemente de TICKET
-@app.get("/gaps_full")
-def gaps_full(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_gaps_integracao_full(conn)
 
 
 # ------------------------------------------------
