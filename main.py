@@ -15,6 +15,7 @@ from queries.consulta_estoque import get_dados_estoque
 from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
+from queries.gaps_integracao import get_gaps_integracao   # ← AQUI!! IMPORTADO
 
 
 app = FastAPI()
@@ -26,13 +27,12 @@ app.add_middleware(
         "https://chamados-dev.web.app",
         "https://chamados.dev.seeddigital.com.br",
         "https://chamados-dev-seed.web.app",
-        "https://painel.seeddigital.com.br",  # ← Domínio customizado do Lovable
+        "https://painel.seeddigital.com.br",
     ],
-    allow_origin_regex=r"https://.*\.lovableproject\.com",  # ← Permite todos os previews do Lovable
+    allow_origin_regex=r"https://.*\.lovableproject\.com",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-
 )
 
 
@@ -78,6 +78,15 @@ def chamados(token: dict = Depends(verify_token)):
 def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
+
+# ------------------------------------------------
+# NOVO ENDPOINT: GAPS DE INTEGRAÇÃO
+# ------------------------------------------------
+@app.get("/gaps")
+def gaps(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_gaps_integracao(conn)
+
 
 @app.get("/")
 def root():
