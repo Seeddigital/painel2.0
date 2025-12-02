@@ -18,9 +18,6 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
-# nova consulta de COMPANY
-from queries.consulta_company import get_company
-
 # consultas de INTEGRAÇÃO
 from queries.gaps_full import get_gaps_full     # full dataset
 from queries.integracao_ok import get_integracao_ok                  # somente OK
@@ -62,50 +59,35 @@ def clientes(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_clientes(conn)
 
-
 @app.get("/lojas")
 def lojas(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_lojas(conn)
-
 
 @app.get("/sensores")
 def sensores(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_sensores(conn)
 
-
 @app.get("/estoque")
 def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque(conn)
 
-
 @app.get("/estoque_detalhes")
-def estoque_detalhes(token: dict = Depends(verify_token)):
+def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque_detalhes(conn)
-
 
 @app.get("/chamados")
 def chamados(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_chamados(conn)
 
-
 @app.get("/users")
 def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
-
-
-# ------------------------------------------------
-# NOVO ENDPOINT: COMPANY
-# ------------------------------------------------
-@app.get("/company")
-def company(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_company(conn)
 
 
 # ------------------------------------------------
@@ -117,7 +99,6 @@ def company(token: dict = Depends(verify_token)):
 def gaps_full(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_gaps_full(conn)
-
 
 # Apenas OK — TICKET NOT NULL
 @app.get("/integracao_ok")
@@ -139,6 +120,7 @@ def integracao_ok(
         offset=offset,
         limit=page_size
     )
+
 
 
 # ------------------------------------------------
@@ -165,7 +147,6 @@ class Chamado(BaseModel):
     anexos: Optional[List[str]] = []
     trello_card_url: Optional[str] = None
     usuario_id: int
-
 
 @app.post("/chamado")
 def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
