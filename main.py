@@ -23,7 +23,7 @@ from queries.consulta_company import get_company
 
 # consultas de INTEGRAÇÃO
 from queries.gaps_full import get_gaps_full     # full dataset
-from queries.integracao_ok import get_integracao_ok  # somente OK
+from queries.integracao_ok import get_integracao_ok                  # somente OK
 
 app = FastAPI()
 
@@ -126,7 +126,7 @@ def integracao_ok(
     data: Optional[str] = None,
     site_id: Optional[int] = None,
     page: int = 1,
-    page_size: int = 5000,
+    page_size: int = 5000
 ):
     conn = get_connection()
 
@@ -137,7 +137,7 @@ def integracao_ok(
         data=data,
         site_id=site_id,
         offset=offset,
-        limit=page_size,
+        limit=page_size
     )
 
 
@@ -194,8 +194,8 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
             chamado.relevancia,
             json.dumps(chamado.anexos),
             chamado.trello_card_url,
-            chamado.usuario_id,
-        ),
+            chamado.usuario_id
+        )
     )
 
     conn.commit()
@@ -227,7 +227,7 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     columns = [column[0] for column in cursor.description]
 
     chamados = []
-
+    
     for row in rows:
         chamado = dict(zip(columns, row))
         if chamado.get("anexos"):
