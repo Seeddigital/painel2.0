@@ -23,7 +23,7 @@ from queries.consulta_company import get_company
 
 # consultas de INTEGRAÇÃO
 from queries.gaps_full import get_gaps_full     # full dataset
-from queries.integracao_ok import get_integracao_ok                  # somente OK
+from queries.integracao_ok import get_integracao_ok  # somente OK
 
 app = FastAPI()
 
@@ -52,6 +52,31 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         return {"access_token": access_token, "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
+
+
+# ------------------------------------------------
+# MODELOS Pydantic
+# ------------------------------------------------
+class Chamado(BaseModel):
+    cliente: str
+    responsavel: str
+    titulo: str
+    problema: str
+    impacto: str
+    urgencia: bool
+    detalhe_urgencia: Optional[str] = None
+    prazo: Optional[date] = None
+    relevancia: str
+    anexos: Optional[List[str]] = []
+    trello_card_url: Optional[str] = None
+    usuario_id: int
+
+
+class CompanyCreate(BaseModel):
+    DS_COMPANY_DESCRIPTION: str
+    DS_COMPANY_EMPRESA_ID: int
+    DS_STATUS: str
+    DS_COMPANY_SENHA_INTEGRACAO: str
 
 
 # ------------------------------------------------
@@ -100,12 +125,44 @@ def users(token: dict = Depends(verify_token)):
 
 
 # ------------------------------------------------
-# NOVO ENDPOINT: COMPANY
+# ENDPOINTS COMPANY
 # ------------------------------------------------
 @app.get("/company")
 def company(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_company(conn)
+
+
+@app.post("/company")
+def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    insert_query = """
+        INSERT INTO DS_COMPANY (
+            DS_COMPANY_DESCRIPTION,
+            DS_COMPANY_EMPRESA_ID,
+            DS_STATUS,
+            DS_COMPANY_SENHA_INTEGRACAO
+        )
+        VALUES (?, ?, ?, ?)
+    """
+
+    cursor.execute(
+        insert_query,
+        (
+            dados.DS_COMPANY_DESCRIPTION,
+            dados.DS_COMPANY_EMPRESA_ID,
+            dados.DS_STATUS,
+            dados.DS_COMPANY_SENHA_INTEGRACAO,
+        ),
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return {"message": "Company criada com sucesso 🚀"}
 
 
 # ------------------------------------------------
@@ -126,7 +183,7 @@ def integracao_ok(
     data: Optional[str] = None,
     site_id: Optional[int] = None,
     page: int = 1,
-    page_size: int = 5000
+    page_size: int = 5000,
 ):
     conn = get_connection()
 
@@ -137,7 +194,7 @@ def integracao_ok(
         data=data,
         site_id=site_id,
         offset=offset,
-        limit=page_size
+        limit=page_size,
     )
 
 
@@ -152,21 +209,6 @@ def root():
 # ----------------------------------------
 # ROTA: POST /chamado
 # ----------------------------------------
-class Chamado(BaseModel):
-    cliente: str
-    responsavel: str
-    titulo: str
-    problema: str
-    impacto: str
-    urgencia: bool
-    detalhe_urgencia: Optional[str] = None
-    prazo: Optional[date] = None
-    relevancia: str
-    anexos: Optional[List[str]] = []
-    trello_card_url: Optional[str] = None
-    usuario_id: int
-
-
 @app.post("/chamado")
 def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -194,8 +236,8 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
             chamado.relevancia,
             json.dumps(chamado.anexos),
             chamado.trello_card_url,
-            chamado.usuario_id
-        )
+            chamado.usuario_id,
+        ),
     )
 
     conn.commit()
@@ -227,13 +269,13 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     columns = [column[0] for column in cursor.description]
 
     chamados = []
-    
+
     for row in rows:
         chamado = dict(zip(columns, row))
         if chamado.get("anexos"):
             try:
                 chamado["anexos"] = json.loads(chamado["anexos"])
-            except:
+            except Exception:
                 chamado["anexos"] = []
         chamados.append(chamado)
 
