@@ -1,21 +1,31 @@
 def get_company(conn):
     query = """
     SELECT
-          [DS_COMPANY_DESCRIPTION]
-        , [DS_COMPANY_EMPRESA_ID]
-        , [DS_STATUS]
-        , [DS_COMPANY_SENHA_INTEGRACAO]
+          [DS_COMPANY_DESCRIPTION],
+          [DS_COMPANY_EMPRESA_ID],
+          [DS_STATUS],
+          [DS_COMPANY_SENHA_INTEGRACAO]
     FROM [Seed_CFG_Analytics].[dbo].[DS_COMPANY]
     """
-    
+
     cursor = conn.cursor()
     cursor.execute(query)
 
-    # Captura dinamicamente os nomes das colunas
     columns = [column[0] for column in cursor.description]
+    results = []
 
-    # Zipa cada linha com suas colunas → vira dicionário
-    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    for row in cursor.fetchall():
+        row_list = list(row)
 
+        # Garante que qualquer campo em bytes vire string (ex: varbinary)
+        for i, value in enumerate(row_list):
+            if isinstance(value, bytes):
+                try:
+                    row_list[i] = value.decode("utf-8")
+                except Exception:
+                    row_list[i] = value.decode("latin1", errors="ignore")
+
+        results.append(dict(zip(columns, row_list)))
+
+    cursor.close()
     return results
-
