@@ -18,9 +18,12 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
+# nova consulta de COMPANY
+from queries.consulta_company import get_company
+
 # consultas de INTEGRAÇÃO
 from queries.gaps_full import get_gaps_full     # full dataset
-from queries.integracao_ok import get_integracao_ok                  # somente OK
+from queries.integracao_ok import get_integracao_ok  # somente OK
 
 app = FastAPI()
 
@@ -59,35 +62,50 @@ def clientes(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_clientes(conn)
 
+
 @app.get("/lojas")
 def lojas(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_lojas(conn)
+
 
 @app.get("/sensores")
 def sensores(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_sensores(conn)
 
+
 @app.get("/estoque")
 def estoque(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque(conn)
 
+
 @app.get("/estoque_detalhes")
-def estoque(token: dict = Depends(verify_token)):
+def estoque_detalhes(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_estoque_detalhes(conn)
+
 
 @app.get("/chamados")
 def chamados(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_chamados(conn)
 
+
 @app.get("/users")
 def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
+
+
+# ------------------------------------------------
+# NOVO ENDPOINT: COMPANY
+# ------------------------------------------------
+@app.get("/company")
+def company(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_company(conn)
 
 
 # ------------------------------------------------
@@ -100,6 +118,7 @@ def gaps_full(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_gaps_full(conn)
 
+
 # Apenas OK — TICKET NOT NULL
 @app.get("/integracao_ok")
 def integracao_ok(
@@ -107,7 +126,7 @@ def integracao_ok(
     data: Optional[str] = None,
     site_id: Optional[int] = None,
     page: int = 1,
-    page_size: int = 5000
+    page_size: int = 5000,
 ):
     conn = get_connection()
 
@@ -118,9 +137,8 @@ def integracao_ok(
         data=data,
         site_id=site_id,
         offset=offset,
-        limit=page_size
+        limit=page_size,
     )
-
 
 
 # ------------------------------------------------
@@ -147,6 +165,7 @@ class Chamado(BaseModel):
     anexos: Optional[List[str]] = []
     trello_card_url: Optional[str] = None
     usuario_id: int
+
 
 @app.post("/chamado")
 def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
@@ -175,8 +194,8 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
             chamado.relevancia,
             json.dumps(chamado.anexos),
             chamado.trello_card_url,
-            chamado.usuario_id
-        )
+            chamado.usuario_id,
+        ),
     )
 
     conn.commit()
@@ -208,7 +227,7 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
     columns = [column[0] for column in cursor.description]
 
     chamados = []
-    
+
     for row in rows:
         chamado = dict(zip(columns, row))
         if chamado.get("anexos"):
