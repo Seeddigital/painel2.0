@@ -6,7 +6,7 @@ SELECT
     S.DS_SITE_DESCRIPTION AS name,
     C.DS_COMPANY_BS_ID AS client_id,
     S.DS_SITE_END_UF AS state,
-    S.DS_SITE_END_CIDADE AS city,DS_SITE_CNPJ
+    S.DS_SITE_END_CIDADE AS city,DS_SITE_CNPJ,
     CASE 
         WHEN S.DS_SITE_TS_ID = 2 THEN 'shopping'
         WHEN S.DS_SITE_TS_ID = 1 THEN 'rua'
