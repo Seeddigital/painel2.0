@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from typing import List, Optional
 import json
@@ -79,7 +79,8 @@ class Store(BaseModel):
     observations: List[str]
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
-    trelloCardUrl: Optional[str] = None   # <-- NOVO CAMPO
+    trello_card_url: Optional[str] = None   # <-- PADRÃO SEED
+
 
 class BriefingRequest(BaseModel):
     stores: List[Store]
@@ -99,9 +100,10 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
         query = """
         INSERT INTO DS_BRIEFING (
-            STORE_NAME, STORE_CODE, SENSORS, ADDRESS, CITY, STATE, CEP, CNPJ, COMPANY_NAME, CEILING_HEIGHT, DATA_TYPE,
+            STORE_NAME, STORE_CODE, SENSORS, ADDRESS, CITY, STATE, CEP, CNPJ,
+            COMPANY_NAME, CEILING_HEIGHT, DATA_TYPE,
 
-            PROJECT_CLIENT, PROJECT_CLIENT_STATUS, PROJECT_DASHBOARD, PROJECT_DATA_ACCESS, 
+            PROJECT_CLIENT, PROJECT_CLIENT_STATUS, PROJECT_DASHBOARD, PROJECT_DATA_ACCESS,
             PROJECT_IS_POC, PROJECT_SALESPERSON, PROJECT_SCOPE_MEETING, PROJECT_TYPE,
             PROJECT_TOTAL_SENSORS, PROJECT_TOTAL_STORES,
 
@@ -109,21 +111,22 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             CONTACT_NAME, CONTACT_EMAIL, CONTACT_PHONE, CONTACT_CELLPHONE, CONTACT_POSITION,
 
-            FIN_CONTACT_NAME, FIN_CONTACT_EMAIL, FIN_CONTACT_PHONE, FIN_CONTACT_CELLPHONE, FIN_CONTACT_POSITION,
+            FIN_CONTACT_NAME, FIN_CONTACT_EMAIL, FIN_CONTACT_PHONE,
+            FIN_CONTACT_CELLPHONE, FIN_CONTACT_POSITION,
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
-            OBSERVATIONS, ACCESS_POINTS, TAGS,
-            trelloCardUrl
+            OBSERVATIONS, ACCESS_POINTS, TAGS, trello_card_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?,
-                ?, ?, ?,
-                ?, ?, ?,
-                ?)
+        VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?
+        )
         """
 
         cursor.execute(query, (
@@ -174,7 +177,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
-            store.trelloCardUrl   # <-- NOVO PARAMETRO
+            store.trello_card_url   # <-- SALVA NO BANCO
         ))
 
     conn.commit()
