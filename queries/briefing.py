@@ -79,6 +79,7 @@ class Store(BaseModel):
     observations: List[str]
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
+    trelloCardUrl: Optional[str] = None   # <-- NOVO CAMPO
 
 class BriefingRequest(BaseModel):
     stores: List[Store]
@@ -112,7 +113,8 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
-            OBSERVATIONS, ACCESS_POINTS, TAGS
+            OBSERVATIONS, ACCESS_POINTS, TAGS,
+            trelloCardUrl
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -120,7 +122,8 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
                 ?, ?, ?, ?, ?,
                 ?, ?, ?, ?, ?,
                 ?, ?, ?,
-                ?, ?, ?)
+                ?, ?, ?,
+                ?)
         """
 
         cursor.execute(query, (
@@ -170,7 +173,8 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
-            si.tags
+            si.tags,
+            store.trelloCardUrl   # <-- NOVO PARAMETRO
         ))
 
     conn.commit()
