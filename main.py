@@ -21,13 +21,19 @@ from queries.consulta_users import get_dados_users
 # nova consulta COMPANY
 from queries.consulta_company import get_company
 
-# consultas de INTEGRAÇÃO
-from queries.gaps_full import get_gaps_full     # full dataset
-from queries.integracao_ok import get_integracao_ok  # somente OK
+# integração
+from queries.gaps_full import get_gaps_full
+from queries.integracao_ok import get_integracao_ok
+
+# 🚀 NOVO ENDPOINT /briefing
+from queries.briefing import router as briefing_router
+
 
 app = FastAPI()
 
+# ------------------------------------------------
 # CORS liberado para Lovable / Seed
+# ------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -41,6 +47,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ------------------------------------------------
 # AUTH JWT
@@ -166,17 +173,15 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
 
 
 # ------------------------------------------------
-# NOVOS ENDPOINTS DE INTEGRAÇÃO
+# ENDPOINTS DE INTEGRAÇÃO
 # ------------------------------------------------
 
-# FULL — retorna todos os horários de integração ( OK + GAP )
 @app.get("/gaps_full")
 def gaps_full(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_gaps_full(conn)
 
 
-# Apenas OK — TICKET NOT NULL
 @app.get("/integracao_ok")
 def integracao_ok(
     token: dict = Depends(verify_token),
@@ -186,7 +191,6 @@ def integracao_ok(
     page_size: int = 5000,
 ):
     conn = get_connection()
-
     offset = (page - 1) * page_size
 
     return get_integracao_ok(
@@ -199,6 +203,12 @@ def integracao_ok(
 
 
 # ------------------------------------------------
+# 🆕 NOVO ENDPOINT /briefing
+# ------------------------------------------------
+app.include_router(briefing_router)
+
+
+# ------------------------------------------------
 # ROOT
 # ------------------------------------------------
 @app.get("/")
@@ -206,9 +216,9 @@ def root():
     return {"msg": "API rodando com sucesso 🚀"}
 
 
-# ----------------------------------------
-# ROTA: POST /chamado
-# ----------------------------------------
+# ------------------------------------------------
+# POST /chamado
+# ------------------------------------------------
 @app.post("/chamado")
 def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -247,9 +257,9 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     return {"message": "Chamado registrado com sucesso ✅"}
 
 
-# ----------------------
+# ------------------------------------------------
 # GET /chamado/{usuario_id}
-# ----------------------
+# ------------------------------------------------
 @app.get("/chamado/{usuario_id}")
 def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -266,17 +276,15 @@ def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)
 
     cursor.execute(query, (usuario_id,))
     rows = cursor.fetchall()
-    columns = [column[0] for column in cursor.description]
+    columns = [col[0] for col in cursor.description]
 
     chamados = []
-
     for row in rows:
         chamado = dict(zip(columns, row))
-        if chamado.get("anexos"):
-            try:
-                chamado["anexos"] = json.loads(chamado["anexos"])
-            except Exception:
-                chamado["anexos"] = []
+        try:
+            chamado["anexos"] = json.loads(chamado["anexos"]) if chamado["anexos"] else []
+        except Exception:
+            chamado["anexos"] = []
         chamados.append(chamado)
 
     cursor.close()
