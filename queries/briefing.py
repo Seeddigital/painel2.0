@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import json
 from database import get_connection
@@ -79,7 +79,9 @@ class Store(BaseModel):
     observations: List[str]
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
-    trello_card_url: Optional[str] = None   # <-- PADRÃO SEED
+
+    # Aceita JSON snake_case, salva corretamente no SQL camelCase
+    trello_card_url: Optional[str] = Field(default=None, alias="trello_card_url")
 
 
 class BriefingRequest(BaseModel):
@@ -111,12 +113,11 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             CONTACT_NAME, CONTACT_EMAIL, CONTACT_PHONE, CONTACT_CELLPHONE, CONTACT_POSITION,
 
-            FIN_CONTACT_NAME, FIN_CONTACT_EMAIL, FIN_CONTACT_PHONE,
-            FIN_CONTACT_CELLPHONE, FIN_CONTACT_POSITION,
+            FIN_CONTACT_NAME, FIN_CONTACT_EMAIL, FIN_CONTACT_PHONE, FIN_CONTACT_CELLPHONE, FIN_CONTACT_POSITION,
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
-            OBSERVATIONS, ACCESS_POINTS, TAGS, trello_card_url
+            OBSERVATIONS, ACCESS_POINTS, TAGS, trelloCardUrl
         )
         VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -177,7 +178,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
-            store.trello_card_url   # <-- SALVA NO BANCO
+            store.trello_card_url  # <-- salva corretamente no banco
         ))
 
     conn.commit()
