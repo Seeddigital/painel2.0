@@ -80,8 +80,11 @@ class Store(BaseModel):
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
 
-    # Aceita JSON snake_case, salva corretamente no SQL camelCase
+    # JSON vem como trello_card_url, banco é trelloCardUrl
     trello_card_url: Optional[str] = Field(default=None, alias="trello_card_url")
+
+    # novo campo User no banco, JSON vem como "user"
+    user: Optional[str] = None
 
 
 class BriefingRequest(BaseModel):
@@ -117,7 +120,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
-            OBSERVATIONS, ACCESS_POINTS, TAGS, trelloCardUrl
+            OBSERVATIONS, ACCESS_POINTS, TAGS, trelloCardUrl, [User]
         )
         VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -126,11 +129,12 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?,
-            ?, ?, ?, ?
+            ?, ?, ?, ?, ?
         )
         """
 
         cursor.execute(query, (
+            # dados da loja
             store.name,
             si.storeCode,
             si.sensors,
@@ -143,6 +147,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             si.ceilingHeight,
             si.dataType,
 
+            # projectInfo
             pi.client,
             pi.clientStatus,
             pi.dashboard,
@@ -154,31 +159,39 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             pi.totalSensors,
             pi.totalStores,
 
+            # sponsor
             pi.sponsor.name,
             pi.sponsor.email,
             pi.sponsor.phone,
             pi.sponsor.position,
 
+            # contato principal
             si.contact.name,
             si.contact.email,
             si.contact.phone,
             si.contact.cellphone,
             si.contact.position,
 
+            # contato financeiro
             si.financialContact.name,
             si.financialContact.email,
             si.financialContact.phone,
             si.financialContact.cellphone,
             si.financialContact.position,
 
+            # horários
             si.schedules.weekdays,
             si.schedules.saturday,
             si.schedules.sunday,
 
+            # listas / json
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
-            store.trello_card_url  # <-- salva corretamente no banco
+
+            # novos campos
+            store.trello_card_url,
+            store.user,
         ))
 
     conn.commit()
