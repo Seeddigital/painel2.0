@@ -9,7 +9,9 @@ import json
 from auth import create_access_token, verify_token
 from database import get_connection
 
-# consultas já existentes
+# ------------------------------------------------
+# CONSULTAS JÁ EXISTENTES
+# ------------------------------------------------
 from queries.consulta_clientes import get_dados_clientes
 from queries.consulta_lojas import get_dados_lojas
 from queries.consulta_sensores import get_dados_sensores
@@ -18,21 +20,23 @@ from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
 from queries.consulta_chamados import get_dados_chamados
 from queries.consulta_users import get_dados_users
 
-# nova consulta COMPANY
+# COMPANY
 from queries.consulta_company import get_company
 
-# integração
+# INTEGRAÇÃO
 from queries.gaps_full import get_gaps_full
 from queries.integracao_ok import get_integracao_ok
 
-# 🚀 NOVO ENDPOINT /briefing
+# ROUTERS
 from queries.briefing import router as briefing_router
+from queries.nucleo import router as nucleo_router
+from queries.segmento import router as segmento_router
 
 
 app = FastAPI()
 
 # ------------------------------------------------
-# CORS liberado para Lovable / Seed
+# CORS
 # ------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -48,7 +52,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # ------------------------------------------------
 # AUTH JWT
 # ------------------------------------------------
@@ -60,9 +63,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
 
-
 # ------------------------------------------------
-# MODELOS Pydantic
+# MODELOS
 # ------------------------------------------------
 class Chamado(BaseModel):
     cliente: str
@@ -84,7 +86,6 @@ class CompanyCreate(BaseModel):
     DS_COMPANY_EMPRESA_ID: int
     DS_STATUS: str
     DS_COMPANY_SENHA_INTEGRACAO: str
-
 
 # ------------------------------------------------
 # ENDPOINTS EXISTENTES
@@ -130,9 +131,8 @@ def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
 
-
 # ------------------------------------------------
-# ENDPOINTS COMPANY
+# COMPANY
 # ------------------------------------------------
 @app.get("/company")
 def company(token: dict = Depends(verify_token)):
@@ -145,7 +145,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     conn = get_connection()
     cursor = conn.cursor()
 
-    insert_query = """
+    query = """
         INSERT INTO DS_COMPANY (
             DS_COMPANY_DESCRIPTION,
             DS_COMPANY_EMPRESA_ID,
@@ -156,13 +156,11 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     """
 
     cursor.execute(
-        insert_query,
-        (
-            dados.DS_COMPANY_DESCRIPTION,
-            dados.DS_COMPANY_EMPRESA_ID,
-            dados.DS_STATUS,
-            dados.DS_COMPANY_SENHA_INTEGRACAO,
-        ),
+        query,
+        dados.DS_COMPANY_DESCRIPTION,
+        dados.DS_COMPANY_EMPRESA_ID,
+        dados.DS_STATUS,
+        dados.DS_COMPANY_SENHA_INTEGRACAO,
     )
 
     conn.commit()
@@ -171,11 +169,9 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
 
     return {"message": "Company criada com sucesso 🚀"}
 
-
 # ------------------------------------------------
-# ENDPOINTS DE INTEGRAÇÃO
+# INTEGRAÇÃO
 # ------------------------------------------------
-
 @app.get("/gaps_full")
 def gaps_full(token: dict = Depends(verify_token)):
     conn = get_connection()
@@ -201,12 +197,12 @@ def integracao_ok(
         limit=page_size,
     )
 
-
 # ------------------------------------------------
-# 🆕 NOVO ENDPOINT /briefing
+# 🆕 ROUTERS
 # ------------------------------------------------
 app.include_router(briefing_router)
-
+app.include_router(nucleo_router)
+app.include_router(segmento_router)
 
 # ------------------------------------------------
 # ROOT
@@ -215,16 +211,15 @@ app.include_router(briefing_router)
 def root():
     return {"msg": "API rodando com sucesso 🚀"}
 
-
 # ------------------------------------------------
-# POST /chamado
+# CHAMADOS
 # ------------------------------------------------
 @app.post("/chamado")
 def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     conn = get_connection()
     cursor = conn.cursor()
 
-    insert_query = """
+    query = """
         INSERT INTO DS_CHAMADOS_DEV (
             cliente, responsavel, titulo, problema, impacto,
             urgencia, detalhe_urgencia, prazo, relevancia,
@@ -233,21 +228,19 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     """
 
     cursor.execute(
-        insert_query,
-        (
-            chamado.cliente,
-            chamado.responsavel,
-            chamado.titulo,
-            chamado.problema,
-            chamado.impacto,
-            chamado.urgencia,
-            chamado.detalhe_urgencia,
-            chamado.prazo,
-            chamado.relevancia,
-            json.dumps(chamado.anexos),
-            chamado.trello_card_url,
-            chamado.usuario_id,
-        ),
+        query,
+        chamado.cliente,
+        chamado.responsavel,
+        chamado.titulo,
+        chamado.problema,
+        chamado.impacto,
+        chamado.urgencia,
+        chamado.detalhe_urgencia,
+        chamado.prazo,
+        chamado.relevancia,
+        json.dumps(chamado.anexos),
+        chamado.trello_card_url,
+        chamado.usuario_id,
     )
 
     conn.commit()
@@ -257,9 +250,6 @@ def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
     return {"message": "Chamado registrado com sucesso ✅"}
 
 
-# ------------------------------------------------
-# GET /chamado/{usuario_id}
-# ------------------------------------------------
 @app.get("/chamado/{usuario_id}")
 def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
     conn = get_connection()
