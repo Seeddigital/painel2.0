@@ -80,11 +80,14 @@ class Store(BaseModel):
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
 
-    # JSON vem como trello_card_url, banco é trelloCardUrl
+    # já existentes
     trello_card_url: Optional[str] = Field(default=None, alias="trello_card_url")
-
-    # novo campo User no banco, JSON vem como "user"
     user: Optional[str] = None
+
+    # 🔥 NOVOS CAMPOS
+    ds_nucleo_id: Optional[int] = None
+    ds_nucleo_segmento_id: Optional[int] = None
+    ds_segmento_description: Optional[str] = None
 
 
 class BriefingRequest(BaseModel):
@@ -120,7 +123,9 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
-            OBSERVATIONS, ACCESS_POINTS, TAGS, trelloCardUrl, [User]
+            OBSERVATIONS, ACCESS_POINTS, TAGS,
+            trelloCardUrl, [User],
+            DS_NUCLEO_ID, DS_NUCLEO_SEGMENTO_ID, DS_SEGMENTO_DESCRIPTION
         )
         VALUES (
             ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
@@ -129,12 +134,13 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?,
-            ?, ?, ?, ?, ?
+            ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?
         )
         """
 
         cursor.execute(query, (
-            # dados da loja
+            # loja
             store.name,
             si.storeCode,
             si.sensors,
@@ -147,7 +153,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             si.ceilingHeight,
             si.dataType,
 
-            # projectInfo
+            # projeto
             pi.client,
             pi.clientStatus,
             pi.dashboard,
@@ -184,14 +190,19 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             si.schedules.saturday,
             si.schedules.sunday,
 
-            # listas / json
+            # json / listas
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
 
-            # novos campos
+            # existentes
             store.trello_card_url,
             store.user,
+
+            # 🔥 novos campos
+            store.ds_nucleo_id,
+            store.ds_nucleo_segmento_id,
+            store.ds_segmento_description,
         ))
 
     conn.commit()
