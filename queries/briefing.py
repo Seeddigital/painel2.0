@@ -80,15 +80,14 @@ class Store(BaseModel):
     projectInfo: ProjectInfo
     storeInfo: StoreInfo
 
-    # já existentes
+    # campos já existentes
     trello_card_url: Optional[str] = Field(default=None, alias="trello_card_url")
     user: Optional[str] = None
 
-    # 🔥 NOVOS CAMPOS
+    # novos campos
     ds_nucleo_id: Optional[int] = None
     ds_nucleo_segmento_id: Optional[int] = None
     ds_segmento_description: Optional[str] = None
-
 
 class BriefingRequest(BaseModel):
     stores: List[Store]
@@ -135,12 +134,12 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?,
-            ?, ?, ?, ?, ?, ?, ?
+            ?, ?, ?, ?, ?
         )
         """
 
         cursor.execute(query, (
-            # loja
+            # dados da loja
             store.name,
             si.storeCode,
             si.sensors,
@@ -195,11 +194,11 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
 
-            # existentes
+            # campos existentes
             store.trello_card_url,
             store.user,
 
-            # 🔥 novos campos
+            # novos campos
             store.ds_nucleo_id,
             store.ds_nucleo_segmento_id,
             store.ds_segmento_description,
