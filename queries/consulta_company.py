@@ -12,20 +12,7 @@ def get_company(conn):
     cursor.execute(query)
 
     columns = [column[0] for column in cursor.description]
-    results = []
-
-    for row in cursor.fetchall():
-        row_list = list(row)
-
-        # Garante que qualquer campo em bytes vire string (ex: varbinary)
-        for i, value in enumerate(row_list):
-            if isinstance(value, bytes):
-                try:
-                    row_list[i] = value.decode("utf-8")
-                except Exception:
-                    row_list[i] = value.decode("latin1", errors="ignore")
-
-        results.append(dict(zip(columns, row_list)))
+    results = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     cursor.close()
     return results
