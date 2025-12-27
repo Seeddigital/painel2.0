@@ -2,7 +2,7 @@ def get_company(conn):
     query = """
     SELECT
           [DS_COMPANY_DESCRIPTION],
-          [DS_COMPANY_EMPRESA_ID],
+          [DS_COMPANY_BS_ID],
           [DS_STATUS],
           [DS_COMPANY_SENHA_INTEGRACAO]
     FROM [Seed_CFG_Analytics].[dbo].[DS_COMPANY]
