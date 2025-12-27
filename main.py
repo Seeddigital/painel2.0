@@ -83,7 +83,7 @@ class Chamado(BaseModel):
 
 class CompanyCreate(BaseModel):
     DS_COMPANY_DESCRIPTION: str
-    DS_COMPANY_EMPRESA_ID: int
+    [DS_COMPANY_BS_ID]: int
     DS_STATUS: str
     DS_COMPANY_SENHA_INTEGRACAO: str
 
@@ -148,7 +148,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     query = """
         INSERT INTO DS_COMPANY (
             DS_COMPANY_DESCRIPTION,
-            DS_COMPANY_EMPRESA_ID,
+            [DS_COMPANY_BS_ID],
             DS_STATUS,
             DS_COMPANY_SENHA_INTEGRACAO
         )
@@ -158,7 +158,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     cursor.execute(
         query,
         dados.DS_COMPANY_DESCRIPTION,
-        dados.DS_COMPANY_EMPRESA_ID,
+        dados.[DS_COMPANY_BS_ID],
         dados.DS_STATUS,
         dados.DS_COMPANY_SENHA_INTEGRACAO,
     )
