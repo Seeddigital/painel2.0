@@ -152,7 +152,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         )
         VALUES (?, ?, ?);
 
-        SELECT SCOPE_IDENTITY() AS DS_COMPANY_BS_ID;
+        SELECT SCOPE_IDENTITY();
     """
 
     cursor.execute(
@@ -174,6 +174,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         "message": "Company criada com sucesso 🚀",
         "DS_COMPANY_BS_ID": int(new_id)
     }
+
 
 
 # ------------------------------------------------
