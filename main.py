@@ -147,26 +147,34 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     query = """
         INSERT INTO DS_COMPANY (
             DS_COMPANY_DESCRIPTION,
-            DS_COMPANY_BS_ID,
             DS_STATUS,
             DS_COMPANY_SENHA_INTEGRACAO
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?);
+
+        SELECT SCOPE_IDENTITY() AS DS_COMPANY_BS_ID;
     """
 
     cursor.execute(
         query,
-        dados.DS_COMPANY_DESCRIPTION,
-        dados.DS_COMPANY_BS_ID,
-        dados.DS_STATUS,
-        dados.DS_COMPANY_SENHA_INTEGRACAO,
+        (
+            dados.DS_COMPANY_DESCRIPTION,
+            dados.DS_STATUS,
+            dados.DS_COMPANY_SENHA_INTEGRACAO,
+        )
     )
+
+    new_id = cursor.fetchone()[0]
 
     conn.commit()
     cursor.close()
     conn.close()
 
-    return {"message": "Company criada com sucesso 🚀"}
+    return {
+        "message": "Company criada com sucesso 🚀",
+        "DS_COMPANY_BS_ID": int(new_id)
+    }
+
 
 # ------------------------------------------------
 # INTEGRAÇÃO
