@@ -148,23 +148,27 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
     query = """
         INSERT INTO DS_COMPANY (
             DS_COMPANY_DESCRIPTION,
+            DS_COMPANY_EMPRESA_ID,
             DS_STATUS,
             DS_COMPANY_SENHA_INTEGRACAO
         )
-        VALUES (?, ?, ?);
+        VALUES (?, ?, ?, ?);
 
-        SELECT SCOPE_IDENTITY();
+        SELECT SCOPE_IDENTITY() AS DS_COMPANY_BS_ID;
     """
 
     cursor.execute(
         query,
         (
             dados.DS_COMPANY_DESCRIPTION,
+            dados.DS_COMPANY_EMPRESA_ID,
             dados.DS_STATUS,
             dados.DS_COMPANY_SENHA_INTEGRACAO,
         )
     )
 
+    # 🔑 ESSENCIAL no pyodbc
+    cursor.nextset()
     new_id = cursor.fetchone()[0]
 
     conn.commit()
@@ -175,6 +179,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         "message": "Company criada com sucesso 🚀",
         "DS_COMPANY_BS_ID": int(new_id)
     }
+
 
 
 
