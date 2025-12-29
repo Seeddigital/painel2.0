@@ -81,10 +81,11 @@ class Chamado(BaseModel):
 
 
 class CompanyCreate(BaseModel):
-    DS_COMPANY_DESCRIPTION: str
-    DS_COMPANY_BS_ID: int
-    DS_STATUS: str
-    DS_COMPANY_SENHA_INTEGRACAO: str
+    DS_COMPANY_DESCRIPTION: Optional[str] = None
+    DS_COMPANY_EMPRESA_ID: Optional[int] = None
+    DS_STATUS: Optional[str] = None
+    DS_COMPANY_SENHA_INTEGRACAO: Optional[str] = None
+
 
 # ------------------------------------------------
 # ENDPOINTS EXISTENTES
