@@ -27,6 +27,10 @@ from queries.consulta_company import get_company
 from queries.gaps_full import get_gaps_full
 from queries.integracao_ok import get_integracao_ok
 
+# 🔹 NOVAS CONSULTAS (SENSORES)
+from queries.consulta_sensores_instalados import get_sensores_instalados
+from queries.consulta_sensores_desinstalados import get_sensores_desinstalados
+
 # ROUTERS
 from queries.briefing import router as briefing_router
 from queries.nucleo import router as nucleo_router
@@ -132,6 +136,20 @@ def users(token: dict = Depends(verify_token)):
     return get_dados_users(conn)
 
 # ------------------------------------------------
+# 🔹 NOVOS ENDPOINTS – SENSORES
+# ------------------------------------------------
+@app.get("/sensores/instalados")
+def sensores_instalados(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_sensores_instalados(conn)
+
+
+@app.get("/sensores/desinstalados")
+def sensores_desinstalados(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_sensores_desinstalados(conn)
+
+# ------------------------------------------------
 # COMPANY
 # ------------------------------------------------
 @app.get("/company")
@@ -179,9 +197,6 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         "message": "Company criada com sucesso 🚀",
         "DS_COMPANY_BS_ID": int(new_id)
     }
-
-
-
 
 # ------------------------------------------------
 # INTEGRAÇÃO
