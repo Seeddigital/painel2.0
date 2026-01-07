@@ -27,9 +27,10 @@ from queries.consulta_company import get_company
 from queries.gaps_full import get_gaps_full
 from queries.integracao_ok import get_integracao_ok
 
-# 🔹 NOVAS CONSULTAS (SENSORES)
+# SENSORES
 from queries.consulta_sensores_instalados import get_sensores_instalados
 from queries.consulta_sensores_desinstalados import get_sensores_desinstalados
+from queries.consulta_saldo_validado_sensores import get_saldo_validado_sensores
 
 # ROUTERS
 from queries.briefing import router as briefing_router
@@ -136,7 +137,7 @@ def users(token: dict = Depends(verify_token)):
     return get_dados_users(conn)
 
 # ------------------------------------------------
-# 🔹 NOVOS ENDPOINTS – SENSORES
+# SENSORES
 # ------------------------------------------------
 @app.get("/sensores/instalados")
 def sensores_instalados(token: dict = Depends(verify_token)):
@@ -148,6 +149,12 @@ def sensores_instalados(token: dict = Depends(verify_token)):
 def sensores_desinstalados(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_sensores_desinstalados(conn)
+
+
+@app.get("/saldo_validado_sensores")
+def saldo_validado_sensores(token: dict = Depends(verify_token)):
+    conn = get_connection()
+    return get_saldo_validado_sensores(conn)
 
 # ------------------------------------------------
 # COMPANY
@@ -185,7 +192,6 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         )
     )
 
-    # 🔑 ESSENCIAL no pyodbc
     cursor.nextset()
     new_id = cursor.fetchone()[0]
 
