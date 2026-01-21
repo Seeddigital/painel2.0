@@ -27,6 +27,9 @@ class Contact(BaseModel):
 class FinancialContact(Contact):
     pass
 
+class ScheduleContact(Contact):
+    pass
+
 class AccessPoint(BaseModel):
     accessNumber: int
     height: str
@@ -64,14 +67,17 @@ class StoreInfo(BaseModel):
     cnpj: str
     companyName: str
     connectivity: Connectivity
-    contact: Contact
-    dataType: str
+
+    # contatos separados
+    storeContact: Contact
+    scheduleContact: ScheduleContact
     financialContact: FinancialContact
+
+    dataType: str
     schedules: Schedules
     sensors: int
     state: str
     storeCode: int
-    storeContact: Contact
     tags: Optional[str]
 
 class Store(BaseModel):
@@ -84,14 +90,13 @@ class Store(BaseModel):
     trello_card_url: Optional[str] = Field(default=None, alias="trello_card_url")
     user: Optional[str] = None
 
-    # novos campos
+    # núcleo / segmento
     ds_nucleo_id: Optional[int] = None
     ds_nucleo_segmento_id: Optional[int] = None
     ds_segmento_description: Optional[str] = None
 
 class BriefingRequest(BaseModel):
     stores: List[Store]
-
 
 # -------------------------
 # ENDPOINT
@@ -116,9 +121,12 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
 
             SPONSOR_NAME, SPONSOR_EMAIL, SPONSOR_PHONE, SPONSOR_POSITION,
 
-            CONTACT_NAME, CONTACT_EMAIL, CONTACT_PHONE, CONTACT_CELLPHONE, CONTACT_POSITION,
+            STORE_CONTACT_NAME, STORE_CONTACT_EMAIL, STORE_CONTACT_PHONE, STORE_CONTACT_CELLPHONE, STORE_CONTACT_POSITION,
 
             FIN_CONTACT_NAME, FIN_CONTACT_EMAIL, FIN_CONTACT_PHONE, FIN_CONTACT_CELLPHONE, FIN_CONTACT_POSITION,
+
+            SCHEDULE_CONTACT_NAME, SCHEDULE_CONTACT_EMAIL, SCHEDULE_CONTACT_PHONE,
+            SCHEDULE_CONTACT_CELLPHONE, SCHEDULE_CONTACT_POSITION,
 
             SCHEDULE_WEEKDAYS, SCHEDULE_SATURDAY, SCHEDULE_SUNDAY,
 
@@ -132,6 +140,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?,
             ?, ?, ?, ?, ?
@@ -139,7 +148,7 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
         """
 
         cursor.execute(query, (
-            # dados da loja
+            # loja
             store.name,
             si.storeCode,
             si.sensors,
@@ -170,12 +179,12 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             pi.sponsor.phone,
             pi.sponsor.position,
 
-            # contato principal
-            si.contact.name,
-            si.contact.email,
-            si.contact.phone,
-            si.contact.cellphone,
-            si.contact.position,
+            # contato loja
+            si.storeContact.name,
+            si.storeContact.email,
+            si.storeContact.phone,
+            si.storeContact.cellphone,
+            si.storeContact.position,
 
             # contato financeiro
             si.financialContact.name,
@@ -184,21 +193,28 @@ def create_briefing(data: BriefingRequest, token=Depends(verify_token)):
             si.financialContact.cellphone,
             si.financialContact.position,
 
+            # contato agendamento
+            si.scheduleContact.name,
+            si.scheduleContact.email,
+            si.scheduleContact.phone,
+            si.scheduleContact.cellphone,
+            si.scheduleContact.position,
+
             # horários
             si.schedules.weekdays,
             si.schedules.saturday,
             si.schedules.sunday,
 
-            # json / listas
+            # json
             json.dumps(store.observations),
             json.dumps([ap.dict() for ap in si.accessPoints]),
             si.tags,
 
-            # campos existentes
+            # extras
             store.trello_card_url,
             store.user,
 
-            # novos campos
+            # núcleo
             store.ds_nucleo_id,
             store.ds_nucleo_segmento_id,
             store.ds_segmento_description,
