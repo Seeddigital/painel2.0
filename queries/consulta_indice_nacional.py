@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
 
@@ -8,9 +8,6 @@ def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
 
 
 def _yyyymm_to_first_day(yyyymm: str) -> date:
-    """
-    Recebe 'YYYY-MM' e devolve date(YYYY, MM, 1).
-    """
     try:
         dt = datetime.strptime(yyyymm, "%Y-%m")
         return date(dt.year, dt.month, 1)
@@ -48,9 +45,25 @@ def get_indice_nacional_headline(conn, mes_ano: str) -> List[Dict[str, Any]]:
     return _rows_to_dicts(cur, cur.fetchall())
 
 
-def get_indice_nacional_serie(conn, from_mes_ano: str, to_mes_ano: str) -> List[Dict[str, Any]]:
-    from_date = _yyyymm_to_first_day(from_mes_ano)
-    to_date = _yyyymm_to_first_day(to_mes_ano)
+def get_indice_nacional_serie(
+    conn,
+    mes_ano: Optional[str] = None,
+    from_mes_ano: Optional[str] = None,
+    to_mes_ano: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Regras:
+    - Se vier mes_ano => retorna somente aquele mês.
+    - Senão, exige from_mes_ano e to_mes_ano => retorna a série no intervalo.
+    """
+    if mes_ano:
+        from_date = _yyyymm_to_first_day(mes_ano)
+        to_date = from_date
+    else:
+        if not from_mes_ano or not to_mes_ano:
+            raise ValueError("Informe mes_ano=YYYY-MM OU from_mes_ano=YYYY-MM e to_mes_ano=YYYY-MM.")
+        from_date = _yyyymm_to_first_day(from_mes_ano)
+        to_date = _yyyymm_to_first_day(to_mes_ano)
 
     sql = """
     SELECT
