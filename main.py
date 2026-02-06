@@ -250,7 +250,16 @@ def indice_nacional_headline(
     token: dict = Depends(verify_token),
 ):
     conn = get_connection()
-    return get_indice_nacional_headline(conn, mes_ano)
+    try:
+        return get_indice_nacional_headline(conn, mes_ano)
+    except Exception as e:
+        # pra debugar agora (depois a gente “esconde” isso)
+        raise HTTPException(status_code=500, detail=f"Erro headline: {str(e)}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 @app.get("/indice/nacional/serie")
@@ -260,7 +269,15 @@ def indice_nacional_serie(
     token: dict = Depends(verify_token),
 ):
     conn = get_connection()
-    return get_indice_nacional_serie(conn, from_mes_ano, to_mes_ano)
+    try:
+        return get_indice_nacional_serie(conn, from_mes_ano, to_mes_ano)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro serie: {str(e)}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 @app.get("/indice/nacional/drivers")
@@ -269,7 +286,15 @@ def indice_nacional_drivers(
     token: dict = Depends(verify_token),
 ):
     conn = get_connection()
-    return get_indice_nacional_drivers(conn, mes_ano)
+    try:
+        return get_indice_nacional_drivers(conn, mes_ano)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro drivers: {str(e)}")
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 # ------------------------------------------------
 # ROUTERS
