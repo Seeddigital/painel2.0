@@ -1,4 +1,5 @@
 from typing import Any, Dict, List
+from datetime import datetime, date
 
 
 def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
@@ -6,7 +7,20 @@ def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
     return [{cols[i]: row[i] for i in range(len(cols))} for row in rows]
 
 
-def get_indice_nacional_headline(conn, mes_ano: str):
+def _yyyymm_to_first_day(yyyymm: str) -> date:
+    """
+    Recebe 'YYYY-MM' e devolve date(YYYY, MM, 1).
+    """
+    try:
+        dt = datetime.strptime(yyyymm, "%Y-%m")
+        return date(dt.year, dt.month, 1)
+    except Exception:
+        raise ValueError(f"mes_ano inválido: '{yyyymm}'. Use formato YYYY-MM (ex: 2025-01).")
+
+
+def get_indice_nacional_headline(conn, mes_ano: str) -> List[Dict[str, Any]]:
+    mes_date = _yyyymm_to_first_day(mes_ano)
+
     sql = """
     SELECT
         T.MES_ANO,
@@ -20,9 +34,7 @@ def get_indice_nacional_headline(conn, mes_ano: str):
             MES_ANO,
             AVG(INDICEB100_NACIONAL) AS INDICE_NACIONAL_B100,
             AVG(INDICEB100_NACIONAL) - 100 AS DISTANCIA_BASE_100,
-            AVG(INDICEB100_NACIONAL)
-                - LAG(AVG(INDICEB100_NACIONAL)) OVER (ORDER BY MES_ANO)
-                AS VARIACAO_PONTOS_MOM,
+            AVG(INDICEB100_NACIONAL) - LAG(AVG(INDICEB100_NACIONAL)) OVER (ORDER BY MES_ANO) AS VARIACAO_PONTOS_MOM,
             SUM(FLUXO_ATUAL) AS FLUXO_ATUAL_TOTAL,
             SUM(FLUXO_ANTERIOR) AS FLUXO_ANTERIOR_TOTAL
         FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL]
@@ -30,27 +42,35 @@ def get_indice_nacional_headline(conn, mes_ano: str):
     ) T
     WHERE T.MES_ANO = ?;
     """
+
     cur = conn.cursor()
-    cur.execute(sql, (mes_ano,))
+    cur.execute(sql, (mes_date,))
     return _rows_to_dicts(cur, cur.fetchall())
 
 
-def get_indice_nacional_serie(conn, from_mes_ano: str, to_mes_ano: str):
+def get_indice_nacional_serie(conn, from_mes_ano: str, to_mes_ano: str) -> List[Dict[str, Any]]:
+    from_date = _yyyymm_to_first_day(from_mes_ano)
+    to_date = _yyyymm_to_first_day(to_mes_ano)
+
     sql = """
     SELECT
         MES_ANO,
         AVG(INDICEB100_NACIONAL) AS INDICE_NACIONAL_B100
     FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL]
-    WHERE MES_ANO BETWEEN ? AND ?
+    WHERE MES_ANO >= ?
+      AND MES_ANO <= ?
     GROUP BY MES_ANO
     ORDER BY MES_ANO;
     """
+
     cur = conn.cursor()
-    cur.execute(sql, (from_mes_ano, to_mes_ano))
+    cur.execute(sql, (from_date, to_date))
     return _rows_to_dicts(cur, cur.fetchall())
 
 
-def get_indice_nacional_drivers(conn, mes_ano: str):
+def get_indice_nacional_drivers(conn, mes_ano: str) -> List[Dict[str, Any]]:
+    mes_date = _yyyymm_to_first_day(mes_ano)
+
     sql = """
     WITH BASE AS (
         SELECT
@@ -172,5 +192,5 @@ def get_indice_nacional_drivers(conn, mes_ano: str):
     """
 
     cur = conn.cursor()
-    cur.execute(sql, (mes_ano,))
+    cur.execute(sql, (mes_date,))
     return _rows_to_dicts(cur, cur.fetchall())
