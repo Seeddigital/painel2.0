@@ -2,6 +2,9 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, date
 
 
+# -----------------------------
+# Helpers
+# -----------------------------
 def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
     cols = [col[0] for col in cursor.description]
     return [{cols[i]: row[i] for i in range(len(cols))} for row in rows]
@@ -11,13 +14,13 @@ def _parse_mes_param(value: str) -> date:
     """
     Aceita:
       - 'YYYY-MM'
-      - 'YYYY-MM-01' (ou qualquer dia)
-    Retorna sempre date(YYYY,MM,1)
+      - 'YYYY-MM-DD'
+    Retorna sempre date(YYYY, MM, 1)
     """
     if not value:
         raise ValueError("Data vazia.")
 
-    v = value.strip()
+    v = str(value).strip()
 
     # tenta YYYY-MM
     try:
@@ -36,9 +39,34 @@ def _parse_mes_param(value: str) -> date:
     raise ValueError(f"Data inválida: '{value}'. Use YYYY-MM (ex: 2025-01) ou YYYY-MM-DD.")
 
 
-def _date_to_yyyymm(d: Optional[date]) -> Optional[str]:
-    if not d:
+def _ensure_date_first_day(v: Any) -> date:
+    """
+    Garante que MES_ANO vire date(YYYY,MM,1) mesmo se vier:
+      - date
+      - datetime
+      - str: 'YYYY-MM' ou 'YYYY-MM-DD'
+    """
+    if v is None:
+        raise ValueError("Valor de data é NULL.")
+
+    if isinstance(v, date) and not isinstance(v, datetime):
+        return date(v.year, v.month, 1)
+
+    if isinstance(v, datetime):
+        return date(v.year, v.month, 1)
+
+    # string (ou qualquer outro tipo) -> parse
+    return _parse_mes_param(str(v))
+
+
+def _date_to_yyyymm(v: Any) -> Optional[str]:
+    """
+    Retorna "YYYY-MM" aceitando date/datetime/str.
+    """
+    if v is None:
         return None
+
+    d = _ensure_date_first_day(v)
     return d.strftime("%Y-%m")
 
 
@@ -46,15 +74,17 @@ def _get_max_mes_ano(conn) -> date:
     cur = conn.cursor()
     cur.execute("SELECT MAX(MES_ANO) AS MAX_MES_ANO FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL];")
     row = cur.fetchone()
-    if not row or not row[0]:
+    if not row or row[0] is None:
         raise ValueError("Tabela INDICE_SEEDDIGITAL está vazia (MAX(MES_ANO) retornou NULL).")
-    return row[0]
+
+    # pode vir date/datetime/str -> normaliza
+    return _ensure_date_first_day(row[0])
 
 
 def _meta_payload(conn, mes_referencia: Optional[str]) -> Dict[str, Any]:
     max_mes = _get_max_mes_ano(conn)
     return {
-        "mes_referencia": mes_referencia,
+        "mes_referencia": mes_referencia,  # "YYYY-MM"
         "ultima_atualizacao": _date_to_yyyymm(max_mes),
         "escala": "pontos base 100",
         "fonte": "Seed",
@@ -62,9 +92,9 @@ def _meta_payload(conn, mes_referencia: Optional[str]) -> Dict[str, Any]:
     }
 
 
-# -----------------------------
+# =========================================================
 # HEADLINE (Base 100)
-# -----------------------------
+# =========================================================
 def get_indice_nacional_headline(conn, mes_ano: str) -> Dict[str, Any]:
     mes_date = _parse_mes_param(mes_ano)
 
@@ -105,9 +135,10 @@ def get_indice_nacional_headline(conn, mes_ano: str) -> Dict[str, Any]:
     }
 
 
-# -----------------------------
-# SERIE (intervalo OU ultimos)
-# -----------------------------
+# =========================================================
+# SERIE (intervalo OU ultimos) - Base 100
+# from/to via main.py (alias="from"/"to")
+# =========================================================
 def get_indice_nacional_serie(
     conn,
     from_mes_ano: Optional[str] = None,
@@ -119,14 +150,18 @@ def get_indice_nacional_serie(
     if ultimos is not None:
         if ultimos <= 0:
             raise ValueError("ultimos deve ser um inteiro > 0.")
+
         to_date = _parse_mes_param(to_mes_ano) if to_mes_ano else max_mes
 
         cur = conn.cursor()
         cur.execute("SELECT DATEADD(MONTH, ?, ?) AS FROM_DATE;", (-(ultimos - 1), to_date))
         from_date = cur.fetchone()[0]
+        from_date = _ensure_date_first_day(from_date)
+
     else:
         if not from_mes_ano or not to_mes_ano:
             raise ValueError("Informe from=YYYY-MM e to=YYYY-MM, OU ultimos=<int>.")
+
         from_date = _parse_mes_param(from_mes_ano)
         to_date = _parse_mes_param(to_mes_ano)
 
@@ -159,9 +194,11 @@ def get_indice_nacional_serie(
     }
 
 
-# -----------------------------
-# DRIVERS (MoM contribuição)
-# -----------------------------
+# =========================================================
+# DRIVERS (MoM contribuição ponderada) - Base 100
+# contribuicao = (indice_atual - indice_anterior) * peso_total
+# + top_pos/top_neg
+# =========================================================
 def get_indice_nacional_drivers(
     conn,
     mes_ano: str,
@@ -173,6 +210,7 @@ def get_indice_nacional_drivers(
     cur = conn.cursor()
     cur.execute("SELECT DATEADD(MONTH, -1, ?) AS PREV_MES;", (mes_date,))
     prev_mes = cur.fetchone()[0]
+    prev_mes = _ensure_date_first_day(prev_mes)
 
     sql = """
     WITH BASE AS (
