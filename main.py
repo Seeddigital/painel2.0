@@ -241,8 +241,7 @@ def integracao_ok(
         limit=page_size,
     )
 
-from fastapi import HTTPException
-from typing import Optional
+
 
 # ------------------------------------------------
 # NOVO: ÍNDICE (NACIONAL) - Base 100 + meta + drivers MoM + série intervalo
