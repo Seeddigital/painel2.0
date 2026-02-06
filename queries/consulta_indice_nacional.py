@@ -1,5 +1,4 @@
 from typing import Any, Dict, List
-from database import get_connection
 
 
 def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
@@ -10,7 +9,7 @@ def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
     return out
 
 
-def get_indice_nacional_headline(mes_ano: str) -> List[Dict[str, Any]]:
+def get_indice_nacional_headline(conn, mes_ano: str) -> List[Dict[str, Any]]:
     sql = """
     SELECT
         T.MES_ANO,
@@ -32,18 +31,13 @@ def get_indice_nacional_headline(mes_ano: str) -> List[Dict[str, Any]]:
     ) T
     WHERE T.MES_ANO = ?;
     """
-
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(sql, (mes_ano,))
-        rows = cur.fetchall()
-        return _rows_to_dicts(cur, rows)
-    finally:
-        conn.close()
+    cur = conn.cursor()
+    cur.execute(sql, (mes_ano,))
+    rows = cur.fetchall()
+    return _rows_to_dicts(cur, rows)
 
 
-def get_indice_nacional_serie(from_mes_ano: str, to_mes_ano: str) -> List[Dict[str, Any]]:
+def get_indice_nacional_serie(conn, from_mes_ano: str, to_mes_ano: str) -> List[Dict[str, Any]]:
     sql = """
     SELECT
         MES_ANO,
@@ -54,18 +48,13 @@ def get_indice_nacional_serie(from_mes_ano: str, to_mes_ano: str) -> List[Dict[s
     GROUP BY MES_ANO
     ORDER BY MES_ANO;
     """
-
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(sql, (from_mes_ano, to_mes_ano))
-        rows = cur.fetchall()
-        return _rows_to_dicts(cur, rows)
-    finally:
-        conn.close()
+    cur = conn.cursor()
+    cur.execute(sql, (from_mes_ano, to_mes_ano))
+    rows = cur.fetchall()
+    return _rows_to_dicts(cur, rows)
 
 
-def get_indice_nacional_drivers(mes_ano: str) -> List[Dict[str, Any]]:
+def get_indice_nacional_drivers(conn, mes_ano: str) -> List[Dict[str, Any]]:
     sql = """
     WITH BASE AS (
         SELECT
@@ -177,12 +166,7 @@ def get_indice_nacional_drivers(mes_ano: str) -> List[Dict[str, Any]]:
         CAST(D.DISPERSAO_PONTOS AS DECIMAL(18,4)) AS DISPERSAO_PONTOS
     FROM DISPERSAO D;
     """
-
-    conn = get_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(sql, (mes_ano,))
-        rows = cur.fetchall()
-        return _rows_to_dicts(cur, rows)
-    finally:
-        conn.close()
+    cur = conn.cursor()
+    cur.execute(sql, (mes_ano,))
+    rows = cur.fetchall()
+    return _rows_to_dicts(cur, rows)
