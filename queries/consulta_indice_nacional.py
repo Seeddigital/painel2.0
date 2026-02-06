@@ -1,381 +1,312 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
-from typing import Optional, List
-from datetime import date
-import json
-
-from auth import create_access_token, verify_token
-from database import get_connection
-
-# ------------------------------------------------
-# CONSULTAS JÁ EXISTENTES
-# ------------------------------------------------
-from queries.consulta_clientes import get_dados_clientes
-from queries.consulta_lojas import get_dados_lojas
-from queries.consulta_sensores import get_dados_sensores
-from queries.consulta_estoque import get_dados_estoque
-from queries.consulta_estoque_detalhes import get_dados_estoque_detalhes
-from queries.consulta_chamados import get_dados_chamados
-from queries.consulta_users import get_dados_users
-
-# COMPANY
-from queries.consulta_company import get_company
-
-# INTEGRAÇÃO
-from queries.gaps_full import get_gaps_full
-from queries.integracao_ok import get_integracao_ok
-
-# SENSORES
-from queries.consulta_sensores_instalados import get_sensores_instalados
-from queries.consulta_sensores_desinstalados import get_sensores_desinstalados
-from queries.consulta_saldo_validado_sensores import get_saldo_validado_sensores
-
-# ROUTERS
-from queries.briefing import router as briefing_router
-from queries.nucleo import router as nucleo_router
-from queries.segmento import router as segmento_router
-
-# ------------------------------------------------
-# ÍNDICE (NACIONAL)
-# ------------------------------------------------
-from queries.consulta_indice_nacional import (
-    get_indice_nacional_headline,
-    get_indice_nacional_serie,
-    get_indice_nacional_drivers,
-)
-
-app = FastAPI()
-
-# ------------------------------------------------
-# CORS
-# ------------------------------------------------
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://chamados-dev.web.app",
-        "https://chamados.dev.seeddigital.com.br",
-        "https://chamados-dev-seed.web.app",
-        "https://painel.seeddigital.com.br",
-    ],
-    allow_origin_regex=r"https://.*\.lovableproject\.com",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ------------------------------------------------
-# AUTH JWT
-# ------------------------------------------------
-@app.post("/token")
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    if form_data.username == "admin" and form_data.password == "admin123":
-        access_token = create_access_token(data={"sub": form_data.username})
-        return {"access_token": access_token, "token_type": "bearer"}
-    else:
-        raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
-
-# ------------------------------------------------
-# MODELOS
-# ------------------------------------------------
-class Chamado(BaseModel):
-    cliente: str
-    responsavel: str
-    titulo: str
-    problema: str
-    impacto: str
-    urgencia: bool
-    detalhe_urgencia: Optional[str] = None
-    prazo: Optional[date] = None
-    relevancia: str
-    anexos: Optional[List[str]] = []
-    trello_card_url: Optional[str] = None
-    usuario_id: int
+from typing import Any, Dict, List, Optional
+from datetime import datetime, date
 
 
-class CompanyCreate(BaseModel):
-    DS_COMPANY_DESCRIPTION: Optional[str] = None
-    DS_COMPANY_EMPRESA_ID: Optional[int] = None
-    DS_STATUS: Optional[str] = None
-    DS_COMPANY_SENHA_INTEGRACAO: Optional[str] = None
+def _rows_to_dicts(cursor, rows) -> List[Dict[str, Any]]:
+    cols = [col[0] for col in cursor.description]
+    return [{cols[i]: row[i] for i in range(len(cols))} for row in rows]
 
 
-# ------------------------------------------------
-# ENDPOINTS EXISTENTES
-# ------------------------------------------------
-@app.get("/clientes")
-def clientes(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_clientes(conn)
+def _parse_mes_param(value: str) -> date:
+    """
+    Aceita:
+      - 'YYYY-MM'
+      - 'YYYY-MM-01' (ou qualquer dia)
+    Retorna sempre date(YYYY,MM,1)
+    """
+    if not value:
+        raise ValueError("Data vazia.")
+
+    v = value.strip()
+
+    # tenta YYYY-MM
+    try:
+        dt = datetime.strptime(v, "%Y-%m")
+        return date(dt.year, dt.month, 1)
+    except Exception:
+        pass
+
+    # tenta YYYY-MM-DD
+    try:
+        dt = datetime.strptime(v, "%Y-%m-%d")
+        return date(dt.year, dt.month, 1)
+    except Exception:
+        pass
+
+    raise ValueError(f"Data inválida: '{value}'. Use YYYY-MM (ex: 2025-01) ou YYYY-MM-DD.")
 
 
-@app.get("/lojas")
-def lojas(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_lojas(conn)
+def _date_to_yyyymm(d: Optional[date]) -> Optional[str]:
+    if not d:
+        return None
+    return d.strftime("%Y-%m")
 
 
-@app.get("/sensores")
-def sensores(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_sensores(conn)
+def _get_max_mes_ano(conn) -> date:
+    cur = conn.cursor()
+    cur.execute("SELECT MAX(MES_ANO) AS MAX_MES_ANO FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL];")
+    row = cur.fetchone()
+    if not row or not row[0]:
+        raise ValueError("Tabela INDICE_SEEDDIGITAL está vazia (MAX(MES_ANO) retornou NULL).")
+    return row[0]
 
 
-@app.get("/estoque")
-def estoque(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_estoque(conn)
+def _meta_payload(conn, mes_referencia: Optional[str]) -> Dict[str, Any]:
+    max_mes = _get_max_mes_ano(conn)
+    return {
+        "mes_referencia": mes_referencia,
+        "ultima_atualizacao": _date_to_yyyymm(max_mes),
+        "escala": "pontos base 100",
+        "fonte": "Seed",
+        "observacao_metodologia": "Índice agregado por média do indicador nacional (convertido para Base 100). Drivers refletem contribuição MoM ponderada.",
+    }
 
 
-@app.get("/estoque_detalhes")
-def estoque_detalhes(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_estoque_detalhes(conn)
+# -----------------------------
+# HEADLINE (Base 100)
+# -----------------------------
+def get_indice_nacional_headline(conn, mes_ano: str) -> Dict[str, Any]:
+    mes_date = _parse_mes_param(mes_ano)
 
-
-@app.get("/chamados")
-def chamados(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_chamados(conn)
-
-
-@app.get("/users")
-def users(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_dados_users(conn)
-
-# ------------------------------------------------
-# SENSORES
-# ------------------------------------------------
-@app.get("/sensores/instalados")
-def sensores_instalados(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_sensores_instalados(conn)
-
-
-@app.get("/sensores/desinstalados")
-def sensores_desinstalados(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_sensores_desinstalados(conn)
-
-
-@app.get("/saldo_validado_sensores")
-def saldo_validado_sensores(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_saldo_validado_sensores(conn)
-
-# ------------------------------------------------
-# COMPANY
-# ------------------------------------------------
-@app.get("/company")
-def company(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_company(conn)
-
-
-@app.post("/company")
-def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    query = """
-        INSERT INTO DS_COMPANY (
-            DS_COMPANY_DESCRIPTION,
-            DS_COMPANY_EMPRESA_ID,
-            DS_STATUS,
-            DS_COMPANY_SENHA_INTEGRACAO
-        )
-        VALUES (?, ?, ?, ?);
-
-        SELECT SCOPE_IDENTITY() AS DS_COMPANY_BS_ID;
+    sql = """
+    WITH AGG AS (
+        SELECT
+            MES_ANO,
+            AVG(INDICEB100_NACIONAL) * 100.0 AS INDICE_NACIONAL_B100,
+            (AVG(INDICEB100_NACIONAL) * 100.0) - 100.0 AS DISTANCIA_BASE_100,
+            (AVG(INDICEB100_NACIONAL) * 100.0)
+              - LAG(AVG(INDICEB100_NACIONAL) * 100.0) OVER (ORDER BY MES_ANO) AS VARIACAO_PONTOS_MOM,
+            SUM(FLUXO_ATUAL) AS FLUXO_ATUAL_TOTAL,
+            SUM(FLUXO_ANTERIOR) AS FLUXO_ANTERIOR_TOTAL
+        FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL]
+        GROUP BY MES_ANO
+    )
+    SELECT
+        MES_ANO,
+        CAST(INDICE_NACIONAL_B100 AS DECIMAL(18,4)) AS INDICE_NACIONAL_B100,
+        CAST(DISTANCIA_BASE_100 AS DECIMAL(18,4)) AS DISTANCIA_BASE_100,
+        CAST(VARIACAO_PONTOS_MOM AS DECIMAL(18,4)) AS VARIACAO_PONTOS_MOM,
+        CAST(FLUXO_ATUAL_TOTAL AS DECIMAL(18,0)) AS FLUXO_ATUAL_TOTAL,
+        CAST(FLUXO_ANTERIOR_TOTAL AS DECIMAL(18,0)) AS FLUXO_ANTERIOR_TOTAL
+    FROM AGG
+    WHERE MES_ANO = ?;
     """
 
-    cursor.execute(
-        query,
-        (
-            dados.DS_COMPANY_DESCRIPTION,
-            dados.DS_COMPANY_EMPRESA_ID,
-            dados.DS_STATUS,
-            dados.DS_COMPANY_SENHA_INTEGRACAO,
-        )
-    )
+    cur = conn.cursor()
+    cur.execute(sql, (mes_date,))
+    data = _rows_to_dicts(cur, cur.fetchall())
 
-    cursor.nextset()
-    new_id = cursor.fetchone()[0]
+    for r in data:
+        r["MES_ANO"] = _date_to_yyyymm(r.get("MES_ANO"))
 
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-    return {"message": "Company criada com sucesso 🚀", "DS_COMPANY_BS_ID": int(new_id)}
-
-# ------------------------------------------------
-# INTEGRAÇÃO
-# ------------------------------------------------
-@app.get("/gaps_full")
-def gaps_full(token: dict = Depends(verify_token)):
-    conn = get_connection()
-    return get_gaps_full(conn)
+    return {
+        "meta": _meta_payload(conn, _date_to_yyyymm(mes_date)),
+        "data": data,
+    }
 
 
-@app.get("/integracao_ok")
-def integracao_ok(
-    token: dict = Depends(verify_token),
-    data: Optional[str] = None,
-    site_id: Optional[int] = None,
-    page: int = 1,
-    page_size: int = 5000,
-):
-    conn = get_connection()
-    offset = (page - 1) * page_size
-
-    return get_integracao_ok(
-        conn,
-        data=data,
-        site_id=site_id,
-        offset=offset,
-        limit=page_size,
-    )
-
-# ------------------------------------------------
-# ÍNDICE (NACIONAL)
-# ------------------------------------------------
-@app.get("/indice/nacional/headline")
-def indice_nacional_headline(
-    mes_ano: str,
-    token: dict = Depends(verify_token),
-):
-    conn = get_connection()
-    try:
-        return get_indice_nacional_headline(conn, mes_ano)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro headline: {str(e)}")
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-
-@app.get("/indice/nacional/serie")
-def indice_nacional_serie(
-    token: dict = Depends(verify_token),
-    from_mes_ano: Optional[str] = Query(None, alias="from"),
-    to_mes_ano: Optional[str] = Query(None, alias="to"),
+# -----------------------------
+# SERIE (intervalo OU ultimos)
+# -----------------------------
+def get_indice_nacional_serie(
+    conn,
+    from_mes_ano: Optional[str] = None,
+    to_mes_ano: Optional[str] = None,
     ultimos: Optional[int] = None,
-):
-    conn = get_connection()
-    try:
-        return get_indice_nacional_serie(conn, from_mes_ano=from_mes_ano, to_mes_ano=to_mes_ano, ultimos=ultimos)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro serie: {str(e)}")
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+) -> Dict[str, Any]:
+    max_mes = _get_max_mes_ano(conn)
+
+    if ultimos is not None:
+        if ultimos <= 0:
+            raise ValueError("ultimos deve ser um inteiro > 0.")
+        to_date = _parse_mes_param(to_mes_ano) if to_mes_ano else max_mes
+
+        cur = conn.cursor()
+        cur.execute("SELECT DATEADD(MONTH, ?, ?) AS FROM_DATE;", (-(ultimos - 1), to_date))
+        from_date = cur.fetchone()[0]
+    else:
+        if not from_mes_ano or not to_mes_ano:
+            raise ValueError("Informe from=YYYY-MM e to=YYYY-MM, OU ultimos=<int>.")
+        from_date = _parse_mes_param(from_mes_ano)
+        to_date = _parse_mes_param(to_mes_ano)
+
+    sql = """
+    SELECT
+        MES_ANO,
+        CAST(AVG(INDICEB100_NACIONAL) * 100.0 AS DECIMAL(18,4)) AS INDICE_NACIONAL_B100
+    FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL]
+    WHERE MES_ANO >= ?
+      AND MES_ANO <= ?
+    GROUP BY MES_ANO
+    ORDER BY MES_ANO;
+    """
+
+    cur2 = conn.cursor()
+    cur2.execute(sql, (from_date, to_date))
+    data = _rows_to_dicts(cur2, cur2.fetchall())
+
+    for r in data:
+        r["MES_ANO"] = _date_to_yyyymm(r.get("MES_ANO"))
+
+    return {
+        "meta": _meta_payload(conn, _date_to_yyyymm(to_date))
+        | {
+            "from": _date_to_yyyymm(from_date),
+            "to": _date_to_yyyymm(to_date),
+            "ultimos": ultimos,
+        },
+        "data": data,
+    }
 
 
-@app.get("/indice/nacional/drivers")
-def indice_nacional_drivers(
+# -----------------------------
+# DRIVERS (MoM contribuição)
+# -----------------------------
+def get_indice_nacional_drivers(
+    conn,
     mes_ano: str,
-    token: dict = Depends(verify_token),
     top_pos: int = 2,
     top_neg: int = 1,
-):
-    conn = get_connection()
-    try:
-        return get_indice_nacional_drivers(conn, mes_ano, top_pos=top_pos, top_neg=top_neg)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro drivers: {str(e)}")
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+) -> Dict[str, Any]:
+    mes_date = _parse_mes_param(mes_ano)
 
-# ------------------------------------------------
-# ROUTERS
-# ------------------------------------------------
-app.include_router(briefing_router)
-app.include_router(nucleo_router)
-app.include_router(segmento_router)
+    cur = conn.cursor()
+    cur.execute("SELECT DATEADD(MONTH, -1, ?) AS PREV_MES;", (mes_date,))
+    prev_mes = cur.fetchone()[0]
 
-# ------------------------------------------------
-# ROOT
-# ------------------------------------------------
-@app.get("/")
-def root():
-    return {"msg": "API rodando com sucesso 🚀"}
-
-# ------------------------------------------------
-# CHAMADOS
-# ------------------------------------------------
-@app.post("/chamado")
-def criar_chamado(chamado: Chamado, token: dict = Depends(verify_token)):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    query = """
-        INSERT INTO DS_CHAMADOS_DEV (
-            cliente, responsavel, titulo, problema, impacto,
-            urgencia, detalhe_urgencia, prazo, relevancia,
-            anexos, data_criacao, trello_card_url, usuario_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, ?)
+    sql = """
+    WITH BASE AS (
+        SELECT
+            MES_ANO,
+            REGIAO,
+            TIPO,
+            SEGMENTO,
+            (INDICEB100_NACIONAL * 100.0) AS INDICE_B100,
+            PESO_NACIONAL,
+            PESO_TIPO
+        FROM [Seed_db_INDICE_SD].[dbo].[INDICE_SEEDDIGITAL]
+        WHERE MES_ANO IN (?, ?)
+    ),
+    REG_M AS (
+        SELECT MES_ANO, REGIAO AS DIMENSAO, AVG(INDICE_B100) AS INDICE_B100, SUM(PESO_NACIONAL) AS PESO_TOTAL
+        FROM BASE GROUP BY MES_ANO, REGIAO
+    ),
+    REG_JOIN AS (
+        SELECT
+            A.DIMENSAO,
+            A.INDICE_B100 AS INDICE_ATUAL,
+            B.INDICE_B100 AS INDICE_ANTERIOR,
+            A.PESO_TOTAL,
+            (A.INDICE_B100 - B.INDICE_B100) AS DELTA_PONTOS,
+            (A.INDICE_B100 - B.INDICE_B100) * A.PESO_TOTAL AS CONTRIBUICAO
+        FROM REG_M A
+        LEFT JOIN REG_M B ON B.DIMENSAO = A.DIMENSAO AND B.MES_ANO = ?
+        WHERE A.MES_ANO = ?
+    ),
+    TIPO_M AS (
+        SELECT MES_ANO, TIPO AS DIMENSAO, AVG(INDICE_B100) AS INDICE_B100, SUM(PESO_TIPO) AS PESO_TOTAL
+        FROM BASE GROUP BY MES_ANO, TIPO
+    ),
+    TIPO_JOIN AS (
+        SELECT
+            A.DIMENSAO,
+            A.INDICE_B100 AS INDICE_ATUAL,
+            B.INDICE_B100 AS INDICE_ANTERIOR,
+            A.PESO_TOTAL,
+            (A.INDICE_B100 - B.INDICE_B100) AS DELTA_PONTOS,
+            (A.INDICE_B100 - B.INDICE_B100) * A.PESO_TOTAL AS CONTRIBUICAO
+        FROM TIPO_M A
+        LEFT JOIN TIPO_M B ON B.DIMENSAO = A.DIMENSAO AND B.MES_ANO = ?
+        WHERE A.MES_ANO = ?
+    ),
+    SEG_M AS (
+        SELECT MES_ANO, SEGMENTO AS DIMENSAO, AVG(INDICE_B100) AS INDICE_B100, SUM(PESO_NACIONAL) AS PESO_TOTAL
+        FROM BASE GROUP BY MES_ANO, SEGMENTO
+    ),
+    SEG_JOIN AS (
+        SELECT
+            A.DIMENSAO,
+            A.INDICE_B100 AS INDICE_ATUAL,
+            B.INDICE_B100 AS INDICE_ANTERIOR,
+            A.PESO_TOTAL,
+            (A.INDICE_B100 - B.INDICE_B100) AS DELTA_PONTOS,
+            (A.INDICE_B100 - B.INDICE_B100) * A.PESO_TOTAL AS CONTRIBUICAO
+        FROM SEG_M A
+        LEFT JOIN SEG_M B ON B.DIMENSAO = A.DIMENSAO AND B.MES_ANO = ?
+        WHERE A.MES_ANO = ?
+    )
+    SELECT 'REGIAO' AS BLOCO, ? AS MES_ANO, DIMENSAO,
+           CAST(INDICE_ATUAL AS DECIMAL(18,4)) AS INDICE_ATUAL,
+           CAST(INDICE_ANTERIOR AS DECIMAL(18,4)) AS INDICE_ANTERIOR,
+           CAST(DELTA_PONTOS AS DECIMAL(18,4)) AS DELTA_PONTOS,
+           CAST(PESO_TOTAL AS DECIMAL(18,6)) AS PESO_TOTAL,
+           CAST(CONTRIBUICAO AS DECIMAL(18,6)) AS CONTRIBUICAO
+    FROM REG_JOIN
+    UNION ALL
+    SELECT 'TIPO', ?, DIMENSAO,
+           CAST(INDICE_ATUAL AS DECIMAL(18,4)),
+           CAST(INDICE_ANTERIOR AS DECIMAL(18,4)),
+           CAST(DELTA_PONTOS AS DECIMAL(18,4)),
+           CAST(PESO_TOTAL AS DECIMAL(18,6)),
+           CAST(CONTRIBUICAO AS DECIMAL(18,6))
+    FROM TIPO_JOIN
+    UNION ALL
+    SELECT 'SEGMENTO', ?, DIMENSAO,
+           CAST(INDICE_ATUAL AS DECIMAL(18,4)),
+           CAST(INDICE_ANTERIOR AS DECIMAL(18,4)),
+           CAST(DELTA_PONTOS AS DECIMAL(18,4)),
+           CAST(PESO_TOTAL AS DECIMAL(18,6)),
+           CAST(CONTRIBUICAO AS DECIMAL(18,6))
+    FROM SEG_JOIN;
     """
 
-    cursor.execute(
-        query,
-        chamado.cliente,
-        chamado.responsavel,
-        chamado.titulo,
-        chamado.problema,
-        chamado.impacto,
-        chamado.urgencia,
-        chamado.detalhe_urgencia,
-        chamado.prazo,
-        chamado.relevancia,
-        json.dumps(chamado.anexos),
-        chamado.trello_card_url,
-        chamado.usuario_id,
+    params = (
+        mes_date, prev_mes,
+        prev_mes, mes_date,
+        prev_mes, mes_date,
+        prev_mes, mes_date,
+        mes_date, mes_date, mes_date
     )
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+    cur2 = conn.cursor()
+    cur2.execute(sql, params)
+    raw = _rows_to_dicts(cur2, cur2.fetchall())
 
-    return {"message": "Chamado registrado com sucesso ✅"}
+    for r in raw:
+        r["MES_ANO"] = _date_to_yyyymm(r.get("MES_ANO"))
 
+    def _sort(arr):
+        return sorted(arr, key=lambda x: (x.get("CONTRIBUICAO") is None, x.get("CONTRIBUICAO", 0)), reverse=True)
 
-@app.get("/chamado/{usuario_id}")
-def listar_chamados_usuario(usuario_id: int, token: dict = Depends(verify_token)):
-    conn = get_connection()
-    cursor = conn.cursor()
+    regiao = _sort([x for x in raw if x.get("BLOCO") == "REGIAO"])
+    tipo = _sort([x for x in raw if x.get("BLOCO") == "TIPO"])
+    segmento = _sort([x for x in raw if x.get("BLOCO") == "SEGMENTO"])
 
-    query = """
-        SELECT id, cliente, responsavel, titulo, problema, impacto,
-               urgencia, detalhe_urgencia, prazo, relevancia,
-               anexos, data_criacao, trello_card_url, status
-        FROM DS_CHAMADOS_DEV
-        WHERE usuario_id = ?
-        ORDER BY data_criacao DESC
-    """
+    def _topcuts(arr):
+        pos = sorted([x for x in arr if (x.get("CONTRIBUICAO") or 0) > 0], key=lambda x: x.get("CONTRIBUICAO", 0), reverse=True)
+        neg = sorted([x for x in arr if (x.get("CONTRIBUICAO") or 0) < 0], key=lambda x: x.get("CONTRIBUICAO", 0))
+        return {"top_pos": pos[:top_pos], "top_neg": neg[:top_neg]}
 
-    cursor.execute(query, (usuario_id,))
-    rows = cursor.fetchall()
-    columns = [col[0] for col in cursor.description]
+    melhor = max((x.get("INDICE_ATUAL") for x in regiao if x.get("INDICE_ATUAL") is not None), default=None)
+    pior = min((x.get("INDICE_ATUAL") for x in regiao if x.get("INDICE_ATUAL") is not None), default=None)
+    dispersao = (float(melhor) - float(pior)) if (melhor is not None and pior is not None) else None
 
-    chamados = []
-    for row in rows:
-        chamado = dict(zip(columns, row))
-        try:
-            chamado["anexos"] = json.loads(chamado["anexos"]) if chamado["anexos"] else []
-        except Exception:
-            chamado["anexos"] = []
-        chamados.append(chamado)
-
-    cursor.close()
-    conn.close()
-
-    return chamados
+    return {
+        "meta": _meta_payload(conn, _date_to_yyyymm(mes_date))
+        | {"mes_anterior": _date_to_yyyymm(prev_mes), "top_pos": top_pos, "top_neg": top_neg},
+        "data": {
+            "regiao": regiao,
+            "tipo": tipo,
+            "segmento": segmento,
+            "dispersao": {
+                "melhor_regiao_b100": melhor,
+                "pior_regiao_b100": pior,
+                "dispersao_pontos": dispersao,
+            },
+        },
+        "top": {
+            "regiao": _topcuts(regiao),
+            "tipo": _topcuts(tipo),
+            "segmento": _topcuts(segmento),
+        },
+    }
