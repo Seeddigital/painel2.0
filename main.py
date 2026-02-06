@@ -242,7 +242,7 @@ def integracao_ok(
     )
 
 # ------------------------------------------------
-# NOVO: ÍNDICE (NACIONAL)
+# NOVO: ÍNDICE (NACIONAL) - parâmetros flexíveis
 # ------------------------------------------------
 @app.get("/indice/nacional/headline")
 def indice_nacional_headline(
@@ -253,7 +253,6 @@ def indice_nacional_headline(
     try:
         return get_indice_nacional_headline(conn, mes_ano)
     except Exception as e:
-        # pra debugar agora (depois a gente “esconde” isso)
         raise HTTPException(status_code=500, detail=f"Erro headline: {str(e)}")
     finally:
         try:
@@ -264,13 +263,15 @@ def indice_nacional_headline(
 
 @app.get("/indice/nacional/serie")
 def indice_nacional_serie(
-    from_mes_ano: str,
-    to_mes_ano: str,
     token: dict = Depends(verify_token),
+    # aceita OU (mes_ano) OU (from_mes_ano/to_mes_ano)
+    mes_ano: Optional[str] = None,
+    from_mes_ano: Optional[str] = None,
+    to_mes_ano: Optional[str] = None,
 ):
     conn = get_connection()
     try:
-        return get_indice_nacional_serie(conn, from_mes_ano, to_mes_ano)
+        return get_indice_nacional_serie(conn, mes_ano=mes_ano, from_mes_ano=from_mes_ano, to_mes_ano=to_mes_ano)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro serie: {str(e)}")
     finally:
@@ -295,6 +296,7 @@ def indice_nacional_drivers(
             conn.close()
         except Exception:
             pass
+
 
 # ------------------------------------------------
 # ROUTERS
