@@ -241,8 +241,11 @@ def integracao_ok(
         limit=page_size,
     )
 
+from fastapi import HTTPException
+from typing import Optional
+
 # ------------------------------------------------
-# NOVO: ÍNDICE (NACIONAL) - parâmetros flexíveis
+# NOVO: ÍNDICE (NACIONAL) - Base 100 + meta + drivers MoM + série intervalo
 # ------------------------------------------------
 @app.get("/indice/nacional/headline")
 def indice_nacional_headline(
@@ -264,14 +267,13 @@ def indice_nacional_headline(
 @app.get("/indice/nacional/serie")
 def indice_nacional_serie(
     token: dict = Depends(verify_token),
-    # aceita OU (mes_ano) OU (from_mes_ano/to_mes_ano)
-    mes_ano: Optional[str] = None,
-    from_mes_ano: Optional[str] = None,
-    to_mes_ano: Optional[str] = None,
+    from_: Optional[str] = None,      # /serie?from=2023-01
+    to: Optional[str] = None,         # /serie?to=2025-01
+    ultimos: Optional[int] = None,    # /serie?ultimos=24
 ):
     conn = get_connection()
     try:
-        return get_indice_nacional_serie(conn, mes_ano=mes_ano, from_mes_ano=from_mes_ano, to_mes_ano=to_mes_ano)
+        return get_indice_nacional_serie(conn, from_=from_, to=to, ultimos=ultimos)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro serie: {str(e)}")
     finally:
@@ -285,10 +287,12 @@ def indice_nacional_serie(
 def indice_nacional_drivers(
     mes_ano: str,
     token: dict = Depends(verify_token),
+    top_pos: int = 2,
+    top_neg: int = 1,
 ):
     conn = get_connection()
     try:
-        return get_indice_nacional_drivers(conn, mes_ano)
+        return get_indice_nacional_drivers(conn, mes_ano, top_pos=top_pos, top_neg=top_neg)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro drivers: {str(e)}")
     finally:
@@ -296,7 +300,6 @@ def indice_nacional_drivers(
             conn.close()
         except Exception:
             pass
-
 
 # ------------------------------------------------
 # ROUTERS
