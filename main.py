@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -76,6 +76,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
     else:
         raise HTTPException(status_code=401, detail="Usuário ou senha inválidos")
 
+
 # ------------------------------------------------
 # MODELOS
 # ------------------------------------------------
@@ -145,6 +146,7 @@ def users(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_dados_users(conn)
 
+
 # ------------------------------------------------
 # SENSORES
 # ------------------------------------------------
@@ -164,6 +166,7 @@ def sensores_desinstalados(token: dict = Depends(verify_token)):
 def saldo_validado_sensores(token: dict = Depends(verify_token)):
     conn = get_connection()
     return get_saldo_validado_sensores(conn)
+
 
 # ------------------------------------------------
 # COMPANY
@@ -213,6 +216,7 @@ def criar_company(dados: CompanyCreate, token: dict = Depends(verify_token)):
         "DS_COMPANY_BS_ID": int(new_id)
     }
 
+
 # ------------------------------------------------
 # INTEGRAÇÃO
 # ------------------------------------------------
@@ -242,9 +246,11 @@ def integracao_ok(
     )
 
 
-
 # ------------------------------------------------
-# NOVO: ÍNDICE (NACIONAL) - Base 100 + meta + drivers MoM + série intervalo
+# NOVO: ÍNDICE (NACIONAL)
+# Ajuste mínimo:
+# - /serie passa a aceitar query params ?from= e ?to= (alias)
+# - assinatura da função get_indice_nacional_serie: from_mes_ano / to_mes_ano
 # ------------------------------------------------
 @app.get("/indice/nacional/headline")
 def indice_nacional_headline(
@@ -266,13 +272,13 @@ def indice_nacional_headline(
 @app.get("/indice/nacional/serie")
 def indice_nacional_serie(
     token: dict = Depends(verify_token),
-    from_: Optional[str] = None,      # /serie?from=2023-01
-    to: Optional[str] = None,         # /serie?to=2025-01
-    ultimos: Optional[int] = None,    # /serie?ultimos=24
+    from_mes_ano: Optional[str] = Query(None, alias="from"),  # /serie?from=2023-01
+    to_mes_ano: Optional[str] = Query(None, alias="to"),      # /serie?to=2025-01
+    ultimos: Optional[int] = None,                            # /serie?ultimos=24
 ):
     conn = get_connection()
     try:
-        return get_indice_nacional_serie(conn, from_=from_, to=to, ultimos=ultimos)
+        return get_indice_nacional_serie(conn, from_mes_ano=from_mes_ano, to_mes_ano=to_mes_ano, ultimos=ultimos)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro serie: {str(e)}")
     finally:
@@ -300,6 +306,7 @@ def indice_nacional_drivers(
         except Exception:
             pass
 
+
 # ------------------------------------------------
 # ROUTERS
 # ------------------------------------------------
@@ -313,6 +320,7 @@ app.include_router(segmento_router)
 @app.get("/")
 def root():
     return {"msg": "API rodando com sucesso 🚀"}
+
 
 # ------------------------------------------------
 # CHAMADOS
