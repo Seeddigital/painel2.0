@@ -37,6 +37,15 @@ from queries.briefing import router as briefing_router
 from queries.nucleo import router as nucleo_router
 from queries.segmento import router as segmento_router
 
+# ------------------------------------------------
+# NOVO: ÍNDICE (NACIONAL)
+# ------------------------------------------------
+from queries.consulta_indice_nacional import (
+    get_indice_nacional_headline,
+    get_indice_nacional_serie,
+    get_indice_nacional_drivers,
+)
+
 app = FastAPI()
 
 # ------------------------------------------------
@@ -231,6 +240,36 @@ def integracao_ok(
         offset=offset,
         limit=page_size,
     )
+
+# ------------------------------------------------
+# NOVO: ÍNDICE (NACIONAL)
+# ------------------------------------------------
+@app.get("/indice/nacional/headline")
+def indice_nacional_headline(
+    mes_ano: str,
+    token: dict = Depends(verify_token),
+):
+    conn = get_connection()
+    return get_indice_nacional_headline(conn, mes_ano)
+
+
+@app.get("/indice/nacional/serie")
+def indice_nacional_serie(
+    from_mes_ano: str,
+    to_mes_ano: str,
+    token: dict = Depends(verify_token),
+):
+    conn = get_connection()
+    return get_indice_nacional_serie(conn, from_mes_ano, to_mes_ano)
+
+
+@app.get("/indice/nacional/drivers")
+def indice_nacional_drivers(
+    mes_ano: str,
+    token: dict = Depends(verify_token),
+):
+    conn = get_connection()
+    return get_indice_nacional_drivers(conn, mes_ano)
 
 # ------------------------------------------------
 # ROUTERS
